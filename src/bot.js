@@ -68,7 +68,8 @@ function startPaymentChecker(bot) {
           msg = i18n.t(userId, 'deposit_success', { amount: `${amount} ${currency}` });
         }
         
-        bot.sendMessage(chatId, msg).catch(() => { });
+        if (chatId) 
+          bot.sendMessage(chatId, msg).catch(() => { });
         
         config.ADMIN_IDS.forEach(id => {
           const adminMsg = i18n.t(id, 'admin_new_deposit', { userId, amount, currency, method });

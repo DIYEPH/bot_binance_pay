@@ -2,16 +2,7 @@
 const db = require('../index');
 
 function create(orderData) {
-  const {
-    userId,
-    productId,
-    quantity,
-    unitPrice,
-    totalPrice,
-    paymentMethod,
-    paymentCode,
-    chatId
-  } = orderData;
+  const { userId, productId, quantity, unitPrice, totalPrice, paymentMethod, paymentCode, chatId} = orderData;
 
   const createdAt = Date.now();
   const finalPaymentCode = paymentCode || (paymentMethod === 'credits' ? 'credits' : 'balance');
