@@ -101,8 +101,13 @@ module.exports = {
   invalid_amount: '✖️ 金额无效！',
   min_amount: '✖️ 最低金额为 {amount}！',
   deposit_success: '✅ 充值成功！\n\n💰 已添加 {amount} 到您的账户！',
+  deposit_success_with_bonus: '✅ 充值成功！\n\n💰 已添加 {amount} {currency} 到您的账户！\n\n🎁 奖励：',
+  deposit_bonus_item: '• {eventName}: +{amount} 积分',
   deposit_not_found: '✖️ 未找到充值请求！',
   expires_30_min: '⏳ {minutes}分钟后过期',
+
+  // Admin notifications
+  admin_new_deposit: '💰 新充值\n👤 用户：{userId}\n💵 {amount} {currency}\n📱 {method}',
 
   // Credits / Referral
   credits_title: '免费积分',

@@ -103,8 +103,13 @@ module.exports = {
   invalid_amount: '✖️ Số tiền không hợp lệ!',
   min_amount: '✖️ Số tiền tối thiểu là {amount}!',
   deposit_success: '✅ NẠP TIỀN THÀNH CÔNG!\n\n💰 Đã cộng {amount} vào tài khoản!',
+  deposit_success_with_bonus: '✅ Nạp tiền thành công!\n\n💰 Đã cộng {amount} {currency} vào tài khoản!\n\n🎁 THƯỞNG:',
+  deposit_bonus_item: '• {eventName}: +{amount} xu',
   deposit_not_found: '✖️ Không tìm thấy yêu cầu nạp tiền!',
   expires_30_min: '⏳ Hết hạn sau {minutes} phút',
+
+  // Admin notifications
+  admin_new_deposit: '💰 NẠP TIỀN MỚI\n👤 User: {userId}\n💵 {amount} {currency}\n📱 {method}',
 
   // Credits / Referral
   credits_title: 'XU FREE',

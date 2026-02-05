@@ -56,14 +56,23 @@ function startPaymentChecker(bot) {
   setInterval(async () => {
     try {
       await Payment.checkPendingDeposits((userId, amount, method, chatId, depositBonuses) => {
-        let msg = `✅ Deposit successful!\n\n💰 Added ${amount} ${method === 'binance' ? 'USDT' : 'VND'} to your account!`;
+        const currency = method === 'binance' ? 'USDT' : 'VND';
+        let msg;
+        
         if (depositBonuses?.length > 0) {
-          msg += `\n\n🎁 BONUS:`;
-          depositBonuses.forEach(b => msg += `\n• ${b.eventName}: +${b.amount} credits`);
+          msg = i18n.t(userId, 'deposit_success_with_bonus', { amount, currency });
+          depositBonuses.forEach(b => {
+            msg += `\n${i18n.t(userId, 'deposit_bonus_item', { eventName: b.eventName, amount: b.amount })}`;
+          });
+        } else {
+          msg = i18n.t(userId, 'deposit_success', { amount: `${amount} ${currency}` });
         }
+        
         bot.sendMessage(chatId, msg).catch(() => { });
+        
         config.ADMIN_IDS.forEach(id => {
-          bot.sendMessage(id, `💰 NEW DEPOSIT\n👤 User: ${userId}\n💵 ${amount} ${method === 'binance' ? 'USDT' : 'VND'}\n📱 ${method}`).catch(() => { });
+          const adminMsg = i18n.t(id, 'admin_new_deposit', { userId, amount, currency, method });
+          bot.sendMessage(id, adminMsg).catch(() => { });
         });
       });
     } catch (err) {

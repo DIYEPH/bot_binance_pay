@@ -103,8 +103,13 @@ module.exports = {
   invalid_amount: '✖️ Invalid amount!',
   min_amount: '✖️ Minimum amount is {amount}!',
   deposit_success: '✅ DEPOSIT SUCCESSFUL!\n\n💰 Added {amount} to your account!',
+  deposit_success_with_bonus: '✅ Deposit successful!\n\n💰 Added {amount} {currency} to your account!\n\n🎁 BONUS:',
+  deposit_bonus_item: '• {eventName}: +{amount} credits',
   deposit_not_found: '✖️ Deposit request not found!',
   expires_30_min: '⏳ Expires in {minutes} minutes',
+
+  // Admin notifications
+  admin_new_deposit: '💰 NEW DEPOSIT\n👤 User: {userId}\n💵 {amount} {currency}\n📱 {method}',
 
   // Credits / Referral
   credits_title: 'FREE CREDITS',
