@@ -63,4 +63,4 @@ function buildLanguageKeyboard(userId) {
   }]);
 }
 
-module.exports = { languages, defaultLang, getLanguages, setUserLang, getUserLang, loadUserLangs, t, getTranslator, buildLanguageKeyboard };
+module.exports = { languages, defaultLang, setUserLang, getUserLang, loadUserLangs, t, getTranslator, buildLanguageKeyboard };

@@ -19,6 +19,7 @@ module.exports = {
   history_btn: '📋 History',
   deposit_btn: '💰 Deposit',
   credits_btn: '🎁 Free Credits',
+  language_btn: '🌐 Language',
   contact_admin: '💬 Contact Admin',
 
   // Products
@@ -33,12 +34,12 @@ module.exports = {
 
   // Payment
   payment_title: '💳 SELECT PAYMENT METHOD',
-  your_balance: '💵 Your balance:',
+  your_balance: 'Your balance:',
   balance_label: '• Balance: {amount}',
   credits_label: '• Free credits: {amount}',
   select_payment: '⛄ Select payment method:',
   pay_with_credits: '🎁 Use Credits ({amount})',
-  pay_with_balance: '💵 Use Balance ({amount})',
+  pay_with_balance: 'Use Balance ({amount})',
   pay_with_both: '🔄 Use Credits + Balance',
   pay_binance: '💰 Binance Pay',
   pay_bank: '🏦 Bank Transfer',
@@ -81,25 +82,25 @@ module.exports = {
   balance_section: 'BALANCE',
   stats_section: 'STATISTICS',
   completed_orders: '🛍️ Completed orders: {count}',
-  balance_spent_label: '💵 Balance spent: {amount}',
+  balance_spent_label: 'Balance spent: {amount}',
   credits_spent_label: '🎁 Credits spent: {amount}',
 
   // Balance
   balance_title: '💰 YOUR BALANCE',
-  current_balance: '💵 Balance: {amount}',
+  current_balance: 'Balance: {amount}',
   current_credits: '🎁 Free credits: {amount}',
   total_balance: '📊 Total: {amount}',
 
   // Deposit
   deposit_title: 'DEPOSIT',
-  deposit_current: '💵 Current balance: {amount}',
+  deposit_current: 'Current balance: {amount}',
   select_deposit_method: '⛄ Select deposit method:',
   deposit_binance: 'Binance Pay (USDT)',
   deposit_bank: '🏦 Bank Transfer',
   deposit_amount_title: 'DEPOSIT - {method}',
   deposit_currency: '💱 Currency: {currency}',
   select_amount: '⛄ Select amount to deposit:',
-  enter_amount: 'Enter amount to deposit:',
+  enter_amount: '📝 Enter amount to deposit:',
   invalid_amount: '✖️ Invalid amount!',
   min_amount: '✖️ Minimum amount is {amount}!',
   deposit_success: '✅ DEPOSIT SUCCESSFUL!\n\n💰 Added {amount} to your account!',
@@ -109,7 +110,7 @@ module.exports = {
   expires_30_min: '⏳ Expires in {minutes} minutes',
 
   // Admin notifications
-  admin_new_deposit: '💰 NEW DEPOSIT\n👤 User: {userId}\n💵 {amount} {currency}\n📱 {method}',
+  admin_new_deposit: '💰 NEW DEPOSIT\n👤 User: {userId}\n{amount} {currency}\n📱 {method}',
 
   // Credits / Referral
   credits_title: 'FREE CREDITS',

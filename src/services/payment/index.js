@@ -11,35 +11,11 @@ const { generateCode } = require('../../utils/helpers');
 const METHODS = { BINANCE: 'binance', BANK: 'bank' };
 const pendingDeposits = new Map();
 
-function getAvailableMethods() {
-  const methods = [];
-
-  if (binance.isConfigured()) {
-    methods.push({
-      id: METHODS.BINANCE,
-      name: 'Binance Pay',
-      currency: 'USDT',
-      icon: '💰'
-    });
-  }
-
-  if (sepay.isConfigured()) {
-    methods.push({
-      id: METHODS.BANK,
-      name: 'Chuyển khoản ngân hàng',
-      currency: 'VND',
-      icon: '🏦'
-    });
-  }
-
-  return methods;
-}
-
-function createDeposit(userId, amount, method, chatId) {
+async function createDeposit(userId, amount, method, chatId) {
   const paymentCode = generateCode();
   const expiresAt = Date.now() + config.DEPOSIT_EXPIRES_MINUTES * 60 * 1000;
 
-  const depositId = Transaction.createPendingDeposit({
+  const depositId = await Transaction.createPendingDeposit({
     userId,
     amount,
     currency: method === METHODS.BINANCE ? 'USDT' : 'VND',
@@ -74,11 +50,11 @@ function createDeposit(userId, amount, method, chatId) {
 async function checkPendingDeposits(onSuccess) {
   const confirmed = [];
   const now = Date.now();
-  const pendingList = Transaction.getAllPendingDeposits();
+  const pendingList = await Transaction.getAllPendingDeposits();
 
   for (const deposit of pendingList) {
     if (deposit.expires_at && now > deposit.expires_at) {
-      Transaction.updatePendingDepositStatus(deposit.id, 'expired');
+      await Transaction.updatePendingDepositStatus(deposit.id, 'expired');
       pendingDeposits.delete(deposit.payment_code);
       continue;
     }
@@ -88,12 +64,12 @@ async function checkPendingDeposits(onSuccess) {
       : await sepay.checkPayment(deposit.payment_code, deposit.amount);
 
     if (paid) {
-      const updated = Transaction.updatePendingDepositStatus(deposit.id, 'completed');
+      const updated = await Transaction.updatePendingDepositStatus(deposit.id, 'completed');
       if (updated > 0) {
         pendingDeposits.delete(deposit.payment_code);
-        Wallet.deposit(deposit.user_id, deposit.amount, deposit.payment_method, `Deposit via ${deposit.payment_method}`);
-        const referralBonus = Referral.processReferrerBonus(deposit.user_id, deposit.amount);
-        const depositBonuses = Events.processAutoEvents(deposit.user_id, 'deposit', deposit.amount, `deposit:${deposit.id}`);
+        await Wallet.deposit(deposit.user_id, deposit.amount, deposit.payment_method, `Deposit via ${deposit.payment_method}`);
+        const referralBonus = await Referral.processReferrerBonus(deposit.user_id, deposit.amount);
+        const depositBonuses = await Events.processAutoEvents(deposit.user_id, 'deposit', deposit.amount, `deposit:${deposit.id}`);
 
         confirmed.push({ ...deposit, referralBonus, depositBonuses });
         if (onSuccess) onSuccess(deposit.user_id, deposit.amount, deposit.payment_method, deposit.chat_id, depositBonuses);
@@ -105,7 +81,7 @@ async function checkPendingDeposits(onSuccess) {
 }
 
 async function checkDeposit(paymentCode) {
-  const deposit = Transaction.getPendingByCode(paymentCode);
+  const deposit = await Transaction.getPendingByCode(paymentCode);
   if (!deposit) return null;
 
   const paid = deposit.payment_method === METHODS.BINANCE
@@ -113,12 +89,12 @@ async function checkDeposit(paymentCode) {
     : await sepay.checkPayment(paymentCode, deposit.amount);
 
   if (paid) {
-    const updated = Transaction.updatePendingDepositStatus(deposit.id, 'completed');
+    const updated = await Transaction.updatePendingDepositStatus(deposit.id, 'completed');
     if (updated > 0) {
       pendingDeposits.delete(paymentCode);
-      Wallet.deposit(deposit.user_id, deposit.amount, deposit.payment_method, `Deposit via ${deposit.payment_method}`);
-      const referralBonus = Referral.processReferrerBonus(deposit.user_id, deposit.amount);
-      const depositBonuses = Events.processAutoEvents(deposit.user_id, 'deposit', deposit.amount, `deposit:${deposit.id}`);
+      await Wallet.deposit(deposit.user_id, deposit.amount, deposit.payment_method, `Deposit via ${deposit.payment_method}`);
+      const referralBonus = await Referral.processReferrerBonus(deposit.user_id, deposit.amount);
+      const depositBonuses = await Events.processAutoEvents(deposit.user_id, 'deposit', deposit.amount, `deposit:${deposit.id}`);
       return { ...deposit, confirmed: true, referralBonus, depositBonuses };
     } else {
       return { ...deposit, confirmed: false, message: 'Already processed' };
@@ -128,22 +104,18 @@ async function checkDeposit(paymentCode) {
   return { ...deposit, confirmed: false };
 }
 
-function cancelDeposit(paymentCode) {
-  const deposit = Transaction.getPendingByCode(paymentCode);
+async function cancelDeposit(paymentCode) {
+  const deposit = await Transaction.getPendingByCode(paymentCode);
   if (!deposit) return false;
 
-  Transaction.updatePendingDepositStatus(deposit.id, 'cancelled');
+  await Transaction.updatePendingDepositStatus(deposit.id, 'cancelled');
   pendingDeposits.delete(paymentCode);
 
   return true;
 }
 
-function getDepositById(depositId) {
-  return Transaction.getPendingDepositById(depositId);
-}
-
-function loadPendingDeposits() {
-  const deposits = Transaction.getAllPendingDeposits();
+async function loadPendingDeposits() {
+  const deposits = await Transaction.getAllPendingDeposits();
   deposits.forEach(d => {
     pendingDeposits.set(d.payment_code, {
       id: d.id,
@@ -158,4 +130,4 @@ function loadPendingDeposits() {
   console.log(`📦 Loaded ${deposits.length} pending deposits`);
 }
 
-module.exports = { METHODS, getAvailableMethods, createDeposit, checkPendingDeposits, checkDeposit, cancelDeposit, getDepositById, loadPendingDeposits, binance, sepay };
+module.exports = { createDeposit, checkPendingDeposits, checkDeposit, cancelDeposit, loadPendingDeposits };

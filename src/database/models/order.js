@@ -1,13 +1,13 @@
 // Order model
 const db = require('../index');
 
-function create(orderData) {
+async function create(orderData) {
   const { userId, productId, quantity, unitPrice, totalPrice, paymentMethod, paymentCode, chatId} = orderData;
 
   const createdAt = Date.now();
   const finalPaymentCode = paymentCode || (paymentMethod === 'credits' ? 'credits' : 'balance');
   
-  db.run(`
+  await db.run(`
     INSERT INTO orders (user_id, product_id, quantity, unit_price, total_price, payment_method, payment_code, chat_id, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [userId, productId, quantity, unitPrice, totalPrice, paymentMethod, finalPaymentCode, chatId, createdAt]);
@@ -16,8 +16,8 @@ function create(orderData) {
   return { id, createdAt };
 }
 
-function getById(id) {
-  const result = db.query(`
+async function getById(id) {
+  const result = await db.query(`
     SELECT o.id, o.user_id, o.product_id, o.quantity, o.unit_price, o.total_price,
            o.payment_method, o.payment_code, o.status, o.chat_id, o.created_at, o.completed_at,
            p.name as product_name
@@ -46,13 +46,13 @@ function getById(id) {
   };
 }
 
-function updateStatus(id, status) {
+async function updateStatus(id, status) {
   const completedAt = status === 'completed' ? Date.now() : null;
-  db.run(`UPDATE orders SET status = ?, completed_at = ? WHERE id = ?`, [status, completedAt, id]);
+  await db.run(`UPDATE orders SET status = ?, completed_at = ? WHERE id = ?`, [status, completedAt, id]);
 }
 
-function getByUser(userId, limit = 20) {
-  const result = db.query(`
+async function getByUser(userId, limit = 20) {
+  const result = await db.query(`
     SELECT o.id, o.status, o.quantity, o.total_price, o.payment_method, o.created_at,
            p.name as product_name
     FROM orders o
@@ -75,8 +75,8 @@ function getByUser(userId, limit = 20) {
   }));
 }
 
-function getRecent(limit = 20) {
-  const result = db.query(`
+async function getRecent(limit = 20) {
+  const result = await db.query(`
     SELECT o.id, o.user_id, o.status, o.quantity, o.total_price, o.payment_method, o.created_at,
            p.name as product_name, u.first_name as user_name
     FROM orders o
@@ -101,8 +101,8 @@ function getRecent(limit = 20) {
   }));
 }
 
-function getRevenue() {
-  const result = db.query(`
+async function getRevenue() {
+  const result = await db.query(`
     SELECT 
       COUNT(*) as total_orders,
       SUM(total_price) as total_revenue,
@@ -125,8 +125,8 @@ function getRevenue() {
   };
 }
 
-function getCompletedCount(userId) {
-  const result = db.query(
+async function getCompletedCount(userId) {
+  const result = await db.query(
     `SELECT COUNT(*) FROM orders WHERE user_id = ? AND status = 'completed'`,
     [userId]
   );

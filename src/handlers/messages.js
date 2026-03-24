@@ -1,6 +1,7 @@
 // Text message handlers
 const config = require('../config');
 const Product = require('../database/models/product');
+const Category = require('../database/models/category');
 const Wallet = require('../services/wallet');
 const Referral = require('../services/referral');
 const Payment = require('../services/payment');
@@ -30,10 +31,10 @@ async function handleUserInput(bot, msg, state) {
   const userId = msg.from.id;
 
   switch (state.action) {
-    case 'custom_qty': return handleCustomQuantity(bot, msg, state);
-    case 'custom_deposit': return handleCustomDeposit(bot, msg, state);
-    case 'enter_referral': return handleReferralCode(bot, msg, state);
-    case 'enter_promo': return handlePromoCode(bot, msg, state);
+    case 'custom_qty': return await handleCustomQuantity(bot, msg, state);
+    case 'custom_deposit': return await handleCustomDeposit(bot, msg, state);
+    case 'enter_referral': return await handleReferralCode(bot, msg, state);
+    case 'enter_promo': return await handlePromoCode(bot, msg, state);
     default: userState.delete(userId);
   }
 }
@@ -44,7 +45,7 @@ async function handleCustomQuantity(bot, msg, state) {
   const t = i18n.getTranslator(userId);
   const qty = parseInt(msg.text.trim());
 
-  const product = Product.getById(state.productId);
+  const product = await Product.getById(state.productId);
 
   if (!product) {
     userState.delete(userId);
@@ -68,14 +69,14 @@ async function handleCustomQuantity(bot, msg, state) {
   // Show payment options
   const balancePrice = product.price * qty;
   const creditsPrice = (product.credits_price || product.price) * qty;
-  const wallet = Wallet.getWallet(userId);
+  const wallet = await Wallet.getWallet(userId);
   const canUseCredits = product.credits_enabled;
 
   let text = `${t('payment_title')}
 ━━━━━━━━━━━━━━━━━━━━━
 
 🎁 ${product.name} x${qty}
-💵 Balance price: ${formatPrice(balancePrice)}`;
+Balance price: ${formatPrice(balancePrice)}`;
 
   if (canUseCredits) {
     text += `\n🎁 Credits price: ${formatCredits(creditsPrice)}`;
@@ -109,11 +110,11 @@ ${t('select_payment')}`;
   // Balance option
   if (canPayBalance) {
     keyboard.push([{
-      text: `💵 ${t('pay_with_balance', { amount: formatPrice(balancePrice) })}`,
+      text: `${t('pay_with_balance', { amount: formatPrice(balancePrice) })}`,
       callback_data: `pay_balance_${state.productId}_${qty}`
     }]);
   } else {
-    keyboard.push([{ text: `💵 Balance: ${formatPrice(balancePrice)} (${t('not_enough')})`, callback_data: 'noop' }]);
+    keyboard.push([{ text: `Balance: ${formatPrice(balancePrice)} (${t('not_enough')})`, callback_data: 'noop' }]);
   }
 
   // Show deposit button if not enough funds
@@ -123,7 +124,7 @@ ${t('select_payment')}`;
 
   keyboard.push([{ text: t('back'), callback_data: `product_${state.productId}` }]);
 
-  bot.sendMessage(chatId, text, { reply_markup: { inline_keyboard: keyboard } });
+  await bot.sendMessage(chatId, text, { reply_markup: { inline_keyboard: keyboard } });
 }
 
 async function handleCustomDeposit(bot, msg, state) {
@@ -147,7 +148,7 @@ async function handleCustomDeposit(bot, msg, state) {
 
   userState.delete(userId);
 
-  const deposit = Payment.createDeposit(userId, amount, state.method, chatId);
+  const deposit = await Payment.createDeposit(userId, amount, state.method, chatId);
   const info = deposit.instructions;
   const currency = state.method === 'binance' ? 'USDT' : 'VND';
 
@@ -181,13 +182,13 @@ async function handleCustomDeposit(bot, msg, state) {
   ];
 
   if (state.method === 'binance') {
-    bot.sendPhoto(chatId, './public/bnc_qr.png', {
+    await bot.sendPhoto(chatId, './public/bnc_qr.png', {
       caption: text,
       parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: keyboard }
     });
   } else if (state.method === 'bank' && info.qrUrl) {
-    bot.sendPhoto(chatId, info.qrUrl, {
+    await bot.sendPhoto(chatId, info.qrUrl, {
       caption: text,
       parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: keyboard }
@@ -195,7 +196,7 @@ async function handleCustomDeposit(bot, msg, state) {
       contentType: 'image/png'
     });
   } else {
-    bot.sendMessage(chatId, text, {
+    await bot.sendMessage(chatId, text, {
       parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: keyboard }
     });
@@ -210,14 +211,14 @@ async function handleReferralCode(bot, msg, state) {
 
   userState.delete(userId);
 
-  const result = Referral.processReferral(userId, code);
+  const result = await Referral.processReferral(userId, code);
 
   if (result.success) {
-    bot.sendMessage(chatId, t('referral_success', { name: result.referrer.first_name, amount: result.bonus }), {
+    await bot.sendMessage(chatId, t('referral_success', { name: result.referrer.first_name, amount: result.bonus }), {
       reply_markup: { inline_keyboard: [[{ text: t('back'), callback_data: 'credits_menu' }]] }
     });
   } else {
-    bot.sendMessage(chatId, t('invalid_referral'), {
+    await bot.sendMessage(chatId, t('invalid_referral'), {
       reply_markup: { inline_keyboard: [[{ text: t('back'), callback_data: 'credits_menu' }]] }
     });
   }
@@ -230,14 +231,14 @@ async function handlePromoCode(bot, msg, state) {
 
   userState.delete(userId);
 
-  const result = Events.claimPromoCode(userId, code);
+  const result = await Events.claimPromoCode(userId, code);
 
   if (result.success) {
-    bot.sendMessage(chatId, `✅ ${result.message}`, {
+    await bot.sendMessage(chatId, `✅ ${result.message}`, {
       reply_markup: { inline_keyboard: [[{ text: '◀️ Back', callback_data: 'credits_menu' }]] }
     });
   } else {
-    bot.sendMessage(chatId, `❌ ${result.message}`, {
+    await bot.sendMessage(chatId, `❌ ${result.message}`, {
       reply_markup: { inline_keyboard: [[{ text: '🔄 Try again', callback_data: 'enter_promo' }, { text: '◀️ Back', callback_data: 'credits_menu' }]] }
     });
   }
@@ -249,6 +250,8 @@ async function handleAdminInput(bot, msg, state) {
 
   switch (state.action) {
     case 'new_product': return handleNewProduct(bot, msg, state, adminState);
+    case 'add_category': return handleAddCategory(bot, msg, state, adminState);
+    case 'edit_category': return handleEditCategory(bot, msg, state, adminState);
     case 'edit_product': return handleEditProduct(bot, msg, state, adminState);
     case 'add_stock': return handleAddStock(bot, msg, state, adminState);
     case 'broadcast': return handleBroadcast(bot, msg, state, adminState);
@@ -262,6 +265,11 @@ async function handleNewProduct(bot, msg, state, adminState) {
   const userId = msg.from.id;
   const chatId = msg.chat.id;
 
+  if (!state.categoryId) {
+    adminState.delete(userId);
+    return bot.sendMessage(chatId, '❌ Thiếu danh mục. Vui lòng chọn danh mục trước khi thêm sản phẩm.');
+  }
+
   const parts = msg.text.split('|').map(s => s.trim());
   const name = parts[0];
   const price = parseFloat(parts[1]);
@@ -273,7 +281,7 @@ async function handleNewProduct(bot, msg, state, adminState) {
     });
   }
 
-  const productId = Product.add(name, price, desc);
+  const productId = await Product.add(name, price, desc, null, false, state.categoryId);
   adminState.delete(userId);
 
   const text = `✅ ĐÃ THÊM SẢN PHẨM
@@ -285,8 +293,61 @@ async function handleNewProduct(bot, msg, state, adminState) {
 
 📊 KHO: ✅0 còn │ 🔴0 đã bán`;
 
-  bot.sendMessage(chatId, text, {
+  await bot.sendMessage(chatId, text, {
     reply_markup: { inline_keyboard: buildAdminProductDetailKeyboard(productId) }
+  });
+}
+
+async function handleAddCategory(bot, msg, state, adminState) {
+  const userId = msg.from.id;
+  const chatId = msg.chat.id;
+
+  const parts = msg.text.split('|').map(s => s.trim());
+  const name = parts[0];
+  const description = parts[1] || '';
+
+  if (!name) {
+    const errorText = `✖️ Sai format! Nhập lại:
+Tên|Mô tả (tùy chọn)
+
+Ví dụ: Account Share|Tài khoản dùng chung`;
+    return bot.sendMessage(chatId, errorText, {
+      reply_markup: { inline_keyboard: [[{ text: '❌ Hủy', callback_data: 'adm_back_list' }]] }
+    });
+  }
+
+  await Category.add(name, description, true);
+  adminState.delete(userId);
+
+  await bot.sendMessage(chatId, `✅ Đã thêm danh mục: ${name}\n📝 ${description || 'Chưa có mô tả'}`);
+}
+
+async function handleEditCategory(bot, msg, state, adminState) {
+  const userId = msg.from.id;
+  const chatId = msg.chat.id;
+
+  const category = await Category.getById(state.categoryId);
+  if (!category) {
+    adminState.delete(userId);
+    return bot.sendMessage(chatId, '❌ Danh mục không tồn tại!');
+  }
+
+  const newValue = msg.text.trim();
+  if (!newValue) {
+    const label = state.field === 'name' ? 'tên' : 'mô tả';
+    return bot.sendMessage(chatId, `✖️ Nội dung ${label} không được để trống.`);
+  }
+
+  const newName = state.field === 'name' ? newValue : category.name;
+  const newDescription = state.field === 'description' ? newValue : category.description;
+
+  await Category.update(category.id, newName, newDescription, category.is_active);
+  adminState.delete(userId);
+
+  await bot.sendMessage(chatId, `✅ Đã cập nhật danh mục #${category.id}
+📂 ${newName}
+📝 ${newDescription || 'Chưa có mô tả'}`, {
+    reply_markup: { inline_keyboard: [[{ text: '◀️ Quay lại', callback_data: `adm_cat_view_${category.id}` }]] }
   });
 }
 
@@ -294,7 +355,7 @@ async function handleEditProduct(bot, msg, state, adminState) {
   const userId = msg.from.id;
   const chatId = msg.chat.id;
 
-  const product = Product.getById(state.productId);
+  const product = await Product.getById(state.productId);
   if (!product) {
     adminState.delete(userId);
     return bot.sendMessage(chatId, '✖️ Sản phẩm không tồn tại!');
@@ -318,11 +379,11 @@ async function handleEditProduct(bot, msg, state, adminState) {
     newDesc = msg.text.trim();
   }
 
-  Product.update(state.productId, newName, newPrice, newDesc);
+  await Product.update(state.productId, newName, newPrice, newDesc);
   adminState.delete(userId);
 
-  const updatedProduct = Product.getById(state.productId);
-  const stocks = Product.getStockByProduct(state.productId);
+  const updatedProduct = await Product.getById(state.productId);
+  const stocks = await Product.getStockByProduct(state.productId);
   const available = stocks.filter(s => !s.is_sold).length;
   const sold = stocks.length - available;
 
@@ -338,7 +399,7 @@ async function handleEditProduct(bot, msg, state, adminState) {
 ◉ Còn: ${available}
 ◉ Đã bán: ${sold}`;
 
-  bot.sendMessage(chatId, text, {
+  await bot.sendMessage(chatId, text, {
     reply_markup: { inline_keyboard: buildAdminProductDetailKeyboard(state.productId) }
   });
 }
@@ -348,11 +409,11 @@ async function handleAddStock(bot, msg, state, adminState) {
   const chatId = msg.chat.id;
 
   const accounts = msg.text.split('\n').filter(a => a.trim());
-  const added = Product.addStock(state.productId, accounts);
+  const added = await Product.addStock(state.productId, accounts);
 
   adminState.delete(userId);
 
-  bot.sendMessage(chatId, `🎯 Đã thêm ${added} tài khoản!\n\nGõ /products để quản lý.`);
+  await bot.sendMessage(chatId, `🎯 Đã thêm ${added} tài khoản!\n\nGõ /products để quản lý.`);
 }
 
 async function handleBroadcast(bot, msg, state, adminState) {
@@ -376,11 +437,11 @@ async function handleSetCreditsPrice(bot, msg, state, adminState) {
     });
   }
 
-  Product.updateCreditsSettings(state.productId, price, true);
+  await Product.updateCreditsSettings(state.productId, price, true);
   adminState.delete(userId);
 
-  const product = Product.getById(state.productId);
-  bot.sendMessage(chatId, `✅ Đã đặt giá xu = ${price} cho ${product.name}`);
+  const product = await Product.getById(state.productId);
+  await bot.sendMessage(chatId, `✅ Đã đặt giá xu = ${price} cho ${product.name}`);
 }
 
 async function handleAddEvent(bot, msg, state, adminState) {
@@ -424,7 +485,7 @@ async function handleAddEvent(bot, msg, state, adminState) {
       };
     }
 
-    const eventId = Events.createEvent(eventData);
+    const eventId = await Events.createEvent(eventData);
     adminState.delete(userId);
 
     let text = `✅ ĐÃ TẠO SỰ KIỆN #${eventId}
@@ -436,9 +497,9 @@ async function handleAddEvent(bot, msg, state, adminState) {
     if (eventData.code) text += `\n🔑 Code: ${eventData.code}`;
     if (eventData.min_amount) text += `\n💰 Tối thiểu: ${eventData.min_amount}`;
 
-    bot.sendMessage(chatId, text);
+    await bot.sendMessage(chatId, text);
   } catch (e) {
-    bot.sendMessage(chatId, '❌ Lỗi: ' + e.message + '\n\nVui lòng nhập lại theo đúng format.', {
+    await bot.sendMessage(chatId, '❌ Lỗi: ' + e.message + '\n\nVui lòng nhập lại theo đúng format.', {
       reply_markup: { inline_keyboard: [[{ text: '❌ Hủy', callback_data: 'adm_event_list' }]] }
     });
   }

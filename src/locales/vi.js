@@ -19,6 +19,7 @@ module.exports = {
   history_btn: '📋 Lịch sử',
   deposit_btn: '💰 Nạp tiền',
   credits_btn: '🎁 Xu free',
+  language_btn: '🌐 Ngôn ngữ',
   contact_admin: '💬 Liên hệ Admin',
 
   // Products
@@ -33,12 +34,12 @@ module.exports = {
 
   // Payment
   payment_title: '💳 CHỌN PHƯƠNG THỨC THANH TOÁN',
-  your_balance: '💵 Số dư của bạn:',
+  your_balance: 'Số dư của bạn:',
   balance_label: '• Balance: {amount}',
   credits_label: '• Xu free: {amount}',
   select_payment: '⛄ Chọn cách thanh toán:',
   pay_with_credits: '🎁 Dùng Xu free ({amount})',
-  pay_with_balance: '💵 Dùng Balance ({amount})',
+  pay_with_balance: 'Dùng Balance ({amount})',
   pay_with_both: '🔄 Dùng cả Xu + Balance',
   pay_binance: '💰 Binance Pay',
   pay_bank: '🏦 Chuyển khoản',
@@ -81,25 +82,25 @@ module.exports = {
   balance_section: 'SỐ DƯ',
   stats_section: 'THỐNG KÊ',
   completed_orders: '🛍️ Đơn hoàn thành: {count}',
-  balance_spent_label: '💵 Đã chi tiêu (Balance): {amount}',
+  balance_spent_label: 'Đã chi tiêu (Balance): {amount}',
   credits_spent_label: '🎁 Đã chi tiêu (Credits): {amount}',
 
   // Balance
   balance_title: '💰 SỐ DƯ CỦA BẠN',
-  current_balance: '💵 Balance: {amount}',
+  current_balance: 'Balance: {amount}',
   current_credits: '🎁 Xu free: {amount}',
   total_balance: '📊 Tổng: {amount}',
 
   // Deposit
   deposit_title: 'NẠP TIỀN',
-  deposit_current: '💵 Số dư hiện tại: {amount}',
+  deposit_current: 'Số dư hiện tại: {amount}',
   select_deposit_method: '⛄ Chọn phương thức nạp:',
   deposit_binance: 'Binance Pay (USDT)',
   deposit_bank: '🏦 Chuyển khoản ngân hàng',
   deposit_amount_title: 'NẠP TIỀN - {method}',
   deposit_currency: '💱 Đơn vị: {currency}',
   select_amount: '⛄ Chọn số tiền muốn nạp:',
-  enter_amount: 'Nhập số tiền muốn nạp:',
+  enter_amount: '📝 Nhập số tiền muốn nạp:',
   invalid_amount: '✖️ Số tiền không hợp lệ!',
   min_amount: '✖️ Số tiền tối thiểu là {amount}!',
   deposit_success: '✅ NẠP TIỀN THÀNH CÔNG!\n\n💰 Đã cộng {amount} vào tài khoản!',
@@ -109,7 +110,7 @@ module.exports = {
   expires_30_min: '⏳ Hết hạn sau {minutes} phút',
 
   // Admin notifications
-  admin_new_deposit: '💰 NẠP TIỀN MỚI\n👤 User: {userId}\n💵 {amount} {currency}\n📱 {method}',
+  admin_new_deposit: '💰 NẠP TIỀN MỚI\n👤 User: {userId}\n{amount} {currency}\n📱 {method}',
 
   // Credits / Referral
   credits_title: 'XU FREE',

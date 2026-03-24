@@ -15,10 +15,10 @@ async function startBot() {
   console.log('🚀 Starting bot...');
   await db.initDB();
 
-  Payment.loadPendingDeposits();
+  await Payment.loadPendingDeposits();
 
   const User = require('./database/models/user');
-  const users = User.getAll(10000);
+  const users = await User.getAll(10000);
   i18n.loadUserLangs(users);
   console.log(`🌐 Loaded languages for ${users.length} users`);
 

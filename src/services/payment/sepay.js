@@ -43,10 +43,6 @@ async function checkPayment(content, amount) {
   }
 }
 
-function isConfigured() {
-  return !!(config.SEPAY_API_KEY && config.BANK_ACCOUNT);
-}
-
 function getPaymentInstructions(amount, content) {
   return {
     method: 'bank',
@@ -63,4 +59,4 @@ function getPaymentInstructions(amount, content) {
   };
 }
 
-module.exports = { getTransactions, checkPayment, isConfigured, getPaymentInstructions };
+module.exports = { checkPayment, getPaymentInstructions };

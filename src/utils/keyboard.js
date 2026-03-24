@@ -1,14 +1,52 @@
 // Keyboard builders
 const { formatPrice, formatCredits } = require('./helpers');
 
-function buildShopKeyboard(products, showProfile = true, adminUsername = null, t = null) {
+function buildCategoryKeyboard(categories, t = null, adminUsername = null, priceRanges = null) {
+  const keyboard = categories.map(c => {
+    const range = priceRanges && priceRanges[c.id];
+    let label = `📂 ${c.name}`;
+
+    if (range && range.min != null && range.max != null) {
+      const priceText = range.min === range.max
+        ? formatPrice(range.min)
+        : `${formatPrice(range.min)}-${formatPrice(range.max)}`;
+      label += ` ┃ ${priceText}`;
+    }
+
+    return [{
+      text: label,
+      callback_data: `category_${c.id}`
+    }];
+  });
+
+  if (t) {
+    keyboard.push([
+      { text: t('profile_btn'), callback_data: 'main_profile' },
+      { text: t('history_btn'), callback_data: 'main_history' }
+    ]);
+    keyboard.push([
+      { text: t('deposit_btn'), callback_data: 'deposit_menu' },
+      { text: t('credits_btn'), callback_data: 'credits_menu' }
+    ]);
+    keyboard.push([{ text: t('language_btn'), callback_data: 'lang_menu' }]);
+  }
+
+  if (adminUsername && t) {
+    keyboard.push([{ text: t('contact_admin'), url: `https://t.me/${adminUsername}` }]);
+  }
+
+  return keyboard;
+}
+
+function buildShopKeyboard(products, showProfile = true, adminUsername = null, t = null, showInactive = false) {
   const keyboard = products.map(p => {
     let priceText = formatPrice(p.price);
     if (p.credits_enabled && p.credits_price) {
       priceText += `/${formatCredits(p.credits_price)}`;
     }
+    const status = showInactive && !p.is_active ? '🔴 ' : '';
     return [{
-      text: `🎁 ${p.name}┃${priceText}┃📦${p.stock_count}`,
+      text: `${status}🎁 ${p.name}┃${priceText}┃📦${p.stock_count}`,
       callback_data: `product_${p.id}`
     }];
   });
@@ -23,7 +61,7 @@ function buildShopKeyboard(products, showProfile = true, adminUsername = null, t
       { text: t('credits_btn'), callback_data: 'credits_menu' }
     ]);
     keyboard.push([
-      { text: '🌐 Language', callback_data: 'lang_menu' }
+      { text: t('language_btn'), callback_data: 'lang_menu' }
     ]);
   }
 
@@ -34,7 +72,7 @@ function buildShopKeyboard(products, showProfile = true, adminUsername = null, t
   return keyboard;
 }
 
-function buildProductKeyboard(product, t = null) {
+function buildProductKeyboard(product, t = null, backCallback = 'back_main') {
   const stock = product.stock_count;
   const presets = [1, 2, 3, 5, 10];
   const qtyButtons = [];
@@ -58,11 +96,11 @@ function buildProductKeyboard(product, t = null) {
   }
 
   if (stock > 5 && t) {
-    keyboard.push([{ text: `📝 ${t('enter_quantity')}`, callback_data: `customqty_${product.id}` }]);
+    keyboard.push([{ text: t('enter_quantity'), callback_data: `customqty_${product.id}` }]);
   }
 
   if (t) {
-    keyboard.push([{ text: t('back'), callback_data: 'main_shop' }]);
+    keyboard.push([{ text: t('back'), callback_data: backCallback }]);
   }
 
   return keyboard;
@@ -71,10 +109,9 @@ function buildProductKeyboard(product, t = null) {
 function buildDepositKeyboard(t = null) {
   const config = require('../config');
   const keyboard = [
-    [{ text: '💰 ' + t('deposit_binance'), callback_data: 'deposit_binance' }]
+    [{ text: t('deposit_binance'), callback_data: 'deposit_binance' }]
   ];
 
-  // Only show bank option if enabled in config
   if (config.BANK_ENABLED) {
     keyboard.push([{ text: t ? t('deposit_bank') : '🏦 Bank Transfer', callback_data: 'deposit_bank' }]);
   }
@@ -100,7 +137,7 @@ function buildDepositAmountKeyboard(method, t = null) {
   });
 
   if (t) {
-    keyboard.push([{ text: `📝 ${t('enter_amount')}`, callback_data: `deposit_custom_${method}` }]);
+    keyboard.push([{ text: t('enter_amount'), callback_data: `deposit_custom_${method}` }]);
     keyboard.push([{ text: t('back'), callback_data: 'deposit_menu' }]);
   }
 
@@ -120,7 +157,7 @@ function buildAdminProductDetailKeyboard(productId, t = null) {
   return [
     [
       { text: t ? t('edit_name') : '✏️ Edit Name', callback_data: `adm_edit_name_${productId}` },
-      { text: t ? t('edit_price') : '💵 Edit Price', callback_data: `adm_edit_price_${productId}` }
+      { text: t ? t('edit_price') : 'Edit Price', callback_data: `adm_edit_price_${productId}` }
     ],
     [{ text: t ? t('edit_description') : '📝 Edit Description', callback_data: `adm_edit_desc_${productId}` }],
     [
@@ -132,4 +169,4 @@ function buildAdminProductDetailKeyboard(productId, t = null) {
   ];
 }
 
-module.exports = { buildShopKeyboard, buildProductKeyboard, buildDepositKeyboard, buildDepositAmountKeyboard, buildAdminProductsKeyboard, buildAdminProductDetailKeyboard };
+module.exports = { buildShopKeyboard, buildCategoryKeyboard, buildProductKeyboard, buildDepositKeyboard, buildDepositAmountKeyboard, buildAdminProductsKeyboard, buildAdminProductDetailKeyboard };

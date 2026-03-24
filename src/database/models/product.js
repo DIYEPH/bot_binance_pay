@@ -1,10 +1,10 @@
 // Product model
 const db = require('../index');
 
-function getAll(activeOnly = true) {
+async function getAll(activeOnly = true) {
   const whereClause = activeOnly ? 'WHERE p.is_active = 1' : '';
-  const result = db.query(`
-    SELECT p.id, p.name, p.price, p.credits_price, p.credits_enabled, p.description, p.is_active,
+  const result = await db.query(`
+    SELECT p.id, p.category_id, p.name, p.price, p.credits_price, p.credits_enabled, p.description, p.is_active,
            COUNT(CASE WHEN s.is_sold = 0 THEN 1 END) as stock_count
     FROM products p
     LEFT JOIN stock s ON p.id = s.product_id
@@ -17,19 +17,20 @@ function getAll(activeOnly = true) {
 
   return result[0].values.map(row => ({
     id: row[0],
-    name: row[1],
-    price: row[2],
-    credits_price: row[3],
-    credits_enabled: row[4] === 1,
-    description: row[5],
-    is_active: row[6],
-    stock_count: row[7] || 0
+    category_id: row[1],
+    name: row[2],
+    price: row[3],
+    credits_price: row[4],
+    credits_enabled: row[5] === 1,
+    description: row[6],
+    is_active: row[7],
+    stock_count: row[8] || 0
   }));
 }
 
-function getById(id) {
-  const result = db.query(`
-    SELECT p.id, p.name, p.price, p.credits_price, p.credits_enabled, p.description, p.is_active,
+async function getById(id) {
+  const result = await db.query(`
+    SELECT p.id, p.category_id, p.name, p.price, p.credits_price, p.credits_enabled, p.description, p.is_active,
            COUNT(CASE WHEN s.is_sold = 0 THEN 1 END) as stock_count
     FROM products p
     LEFT JOIN stock s ON p.id = s.product_id
@@ -42,51 +43,96 @@ function getById(id) {
   const row = result[0].values[0];
   return {
     id: row[0],
-    name: row[1],
-    price: row[2],
-    credits_price: row[3],
-    credits_enabled: row[4] === 1,
-    description: row[5],
-    is_active: row[6],
-    stock_count: row[7] || 0
+    category_id: row[1],
+    name: row[2],
+    price: row[3],
+    credits_price: row[4],
+    credits_enabled: row[5] === 1,
+    description: row[6],
+    is_active: row[7],
+    stock_count: row[8] || 0
   };
 }
 
-function add(name, price, description = '', creditsPrice = null, creditsEnabled = false) {
-  db.run(
-    `INSERT INTO products (name, price, credits_price, credits_enabled, description, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-    [name, price, creditsPrice, creditsEnabled ? 1 : 0, description, Date.now()]
+async function getByCategory(categoryId, activeOnly = true) {
+  const whereClause = activeOnly ? 'AND p.is_active = 1' : '';
+  const result = await db.query(`
+    SELECT p.id, p.category_id, p.name, p.price, p.credits_price, p.credits_enabled, p.description, p.is_active,
+           COUNT(CASE WHEN s.is_sold = 0 THEN 1 END) as stock_count
+    FROM products p
+    LEFT JOIN stock s ON p.id = s.product_id
+    WHERE p.category_id = ? ${whereClause}
+    GROUP BY p.id
+    ORDER BY p.id DESC
+  `, [categoryId]);
+
+  if (!result.length) return [];
+
+  return result[0].values.map(row => ({
+    id: row[0],
+    category_id: row[1],
+    name: row[2],
+    price: row[3],
+    credits_price: row[4],
+    credits_enabled: row[5] === 1,
+    description: row[6],
+    is_active: row[7],
+    stock_count: row[8] || 0
+  }));
+}
+
+async function getCategoryPriceRanges(activeOnly = true) {
+  const whereClause = activeOnly ? 'WHERE is_active = 1' : '';
+  const result = await db.query(`
+    SELECT category_id, MIN(price) as min_price, MAX(price) as max_price
+    FROM products
+    ${whereClause}
+    GROUP BY category_id
+  `);
+
+  if (!result.length) return {};
+
+  return result[0].values.reduce((acc, row) => {
+    acc[row[0]] = { min: row[1], max: row[2] };
+    return acc;
+  }, {});
+}
+
+async function add(name, price, description = '', creditsPrice = null, creditsEnabled = false, categoryId = null) {
+  await db.run(
+    `INSERT INTO products (category_id, name, price, credits_price, credits_enabled, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [categoryId, name, price, creditsPrice, creditsEnabled ? 1 : 0, description, Date.now()]
   );
   return db.lastInsertRowId();
 }
 
-function update(id, name, price, description) {
-  db.run(`UPDATE products SET name = ?, price = ?, description = ? WHERE id = ?`, [name, price, description, id]);
+async function update(id, name, price, description, categoryId) {
+  if (typeof categoryId === 'undefined') {
+    await db.run(`UPDATE products SET name = ?, price = ?, description = ? WHERE id = ?`, [name, price, description, id]);
+  } else {
+    await db.run(`UPDATE products SET name = ?, price = ?, description = ?, category_id = ? WHERE id = ?`, [name, price, description, categoryId, id]);
+  }
 }
 
-function updateCreditsSettings(id, creditsPrice, creditsEnabled) {
-  db.run(
+async function updateCreditsSettings(id, creditsPrice, creditsEnabled) {
+  await db.run(
     `UPDATE products SET credits_price = ?, credits_enabled = ? WHERE id = ?`,
     [creditsPrice, creditsEnabled ? 1 : 0, id]
   );
 }
 
-function setActive(id, isActive) {
-  db.run(`UPDATE products SET is_active = ? WHERE id = ?`, [isActive ? 1 : 0, id]);
+async function remove(id) {
+  await db.run(`DELETE FROM stock WHERE product_id = ?`, [id]);
+  await db.run(`DELETE FROM products WHERE id = ?`, [id]);
 }
 
-function remove(id) {
-  db.run(`DELETE FROM stock WHERE product_id = ?`, [id]);
-  db.run(`DELETE FROM products WHERE id = ?`, [id]);
-}
-
-function addStock(productId, accounts) {
+async function addStock(productId, accounts) {
   const now = Date.now();
   let added = 0;
 
   for (const account of accounts) {
     if (account.trim()) {
-      db.run(
+      await db.run(
         `INSERT INTO stock (product_id, account_data, created_at) VALUES (?, ?, ?)`,
         [productId, account.trim(), now]
       );
@@ -97,8 +143,8 @@ function addStock(productId, accounts) {
   return added;
 }
 
-function getAvailableStock(productId, limit = 1) {
-  const result = db.query(`
+async function getAvailableStock(productId, limit = 1) {
+  const result = await db.query(`
     SELECT id, product_id, account_data 
     FROM stock 
     WHERE product_id = ? AND is_sold = 0 
@@ -116,12 +162,11 @@ function getAvailableStock(productId, limit = 1) {
 }
 
 // Atomic: Reserve stock trước, trả về số lượng thực sự reserved
-function reserveStock(productId, quantity, buyerId) {
+async function reserveStock(productId, quantity, buyerId) {
   const now = Date.now();
-  const reserveCode = `${buyerId}_${now}`;
 
   // Atomic update - chỉ update những stock chưa bị sold
-  db.run(`
+  await db.run(`
     UPDATE stock SET is_sold = 1, buyer_id = ?, sold_at = ?
     WHERE id IN (
       SELECT id FROM stock 
@@ -132,7 +177,7 @@ function reserveStock(productId, quantity, buyerId) {
   `, [buyerId, now, productId, quantity]);
 
   // Lấy stock đã reserved cho user này
-  const result = db.query(`
+  const result = await db.query(`
     SELECT id, product_id, account_data 
     FROM stock 
     WHERE product_id = ? AND buyer_id = ? AND sold_at = ?
@@ -148,10 +193,10 @@ function reserveStock(productId, quantity, buyerId) {
   }));
 }
 
-function markStockSold(stockIds, buyerId) {
+async function markStockSold(stockIds, buyerId) {
   const now = Date.now();
   for (const id of stockIds) {
-    db.run(
+    await db.run(
       `UPDATE stock SET is_sold = 1, buyer_id = ?, sold_at = ? WHERE id = ?`,
       [buyerId, now, id]
     );
@@ -159,14 +204,14 @@ function markStockSold(stockIds, buyerId) {
 }
 
 // Rollback reserved stock nếu cần
-function releaseStock(stockIds) {
+async function releaseStock(stockIds) {
   for (const id of stockIds) {
-    db.run(`UPDATE stock SET is_sold = 0, buyer_id = NULL, sold_at = NULL WHERE id = ?`, [id]);
+    await db.run(`UPDATE stock SET is_sold = 0, buyer_id = NULL, sold_at = NULL WHERE id = ?`, [id]);
   }
 }
 
-function getStockByProduct(productId) {
-  const result = db.query(`
+async function getStockByProduct(productId) {
+  const result = await db.query(`
     SELECT id, account_data, is_sold, buyer_id, sold_at 
     FROM stock 
     WHERE product_id = ?
@@ -184,16 +229,16 @@ function getStockByProduct(productId) {
   }));
 }
 
-function deleteStock(stockId) {
-  db.run(`DELETE FROM stock WHERE id = ? AND is_sold = 0`, [stockId]);
+async function deleteStock(stockId) {
+  await db.run(`DELETE FROM stock WHERE id = ? AND is_sold = 0`, [stockId]);
 }
 
-function clearStock(productId) {
-  db.run(`DELETE FROM stock WHERE product_id = ? AND is_sold = 0`, [productId]);
+async function clearStock(productId) {
+  await db.run(`DELETE FROM stock WHERE product_id = ? AND is_sold = 0`, [productId]);
 }
 
-function getStockStats() {
-  const result = db.query(`
+async function getStockStats() {
+  const result = await db.query(`
     SELECT 
       COUNT(*) as total,
       SUM(CASE WHEN is_sold = 0 THEN 1 ELSE 0 END) as available,
@@ -213,4 +258,4 @@ function getStockStats() {
   };
 }
 
-module.exports = { getAll, getById, add, update, updateCreditsSettings, setActive, remove, addStock, getAvailableStock, reserveStock, markStockSold, releaseStock, getStockByProduct, deleteStock, clearStock, getStockStats };
+module.exports = { getAll, getById, getByCategory, getCategoryPriceRanges, add, update, updateCreditsSettings, remove, addStock, getAvailableStock, reserveStock, markStockSold, releaseStock, getStockByProduct, deleteStock, clearStock, getStockStats };

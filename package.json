@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/bot.js",
-    "run dev": "nodemon src/bot.js"
+    "run dev": "nodemon src/bot.js",
+    "lint": "eslint \"src/**/*.js\""
   },
   "author": "DIYEPH",
   "license": "ISC",
@@ -14,9 +15,11 @@
     "axios": "^1.13.4",
     "dotenv": "^17.2.3",
     "node-telegram-bot-api": "^0.67.0",
-    "sql.js": "^1.13.0"
+    "sqlite3": "^5.1.7",
+    "sync-mysql": "^3.0.1"
   },
   "devDependencies": {
+    "eslint": "^8.57.1",
     "nodemon": "^3.1.11"
   }
 }

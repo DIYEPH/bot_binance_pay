@@ -3,7 +3,7 @@ const db = require('../index');
 
 const TYPES = { DEPOSIT: 'deposit', PURCHASE: 'purchase', REFERRAL_BONUS: 'referral', ADMIN_ADD: 'admin_add', REFUND: 'refund', EVENT_BONUS: 'event' };
 
-function create(data) {
+async function create(data) {
   const {
     userId,
     type,
@@ -15,7 +15,7 @@ function create(data) {
     note = null
   } = data;
 
-  db.run(`
+  await db.run(`
     INSERT INTO transactions (user_id, type, amount, currency, payment_method, reference_id, status, note, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [userId, type, amount, currency, paymentMethod, referenceId, status, note, Date.now()]);
@@ -23,8 +23,8 @@ function create(data) {
   return db.lastInsertRowId();
 }
 
-function getById(id) {
-  const result = db.query(`
+async function getById(id) {
+  const result = await db.query(`
     SELECT id, user_id, type, amount, currency, payment_method, reference_id, status, note, created_at
     FROM transactions WHERE id = ?
   `, [id]);
@@ -46,8 +46,8 @@ function getById(id) {
   };
 }
 
-function getByUser(userId, limit = 20) {
-  const result = db.query(`
+async function getByUser(userId, limit = 20) {
+  const result = await db.query(`
     SELECT id, type, amount, currency, payment_method, status, note, created_at
     FROM transactions
     WHERE user_id = ?
@@ -69,8 +69,8 @@ function getByUser(userId, limit = 20) {
   }));
 }
 
-function getTotalDeposits(userId) {
-  const result = db.query(`
+async function getTotalDeposits(userId) {
+  const result = await db.query(`
     SELECT SUM(amount) FROM transactions 
     WHERE user_id = ? AND type = 'deposit' AND status = 'completed'
   `, [userId]);
@@ -78,7 +78,7 @@ function getTotalDeposits(userId) {
   return result[0]?.values[0][0] || 0;
 }
 
-function createPendingDeposit(data) {
+async function createPendingDeposit(data) {
   const {
     userId,
     amount,
@@ -89,7 +89,7 @@ function createPendingDeposit(data) {
     expiresAt = null
   } = data;
 
-  db.run(`
+  await db.run(`
     INSERT INTO pending_deposits (user_id, amount, currency, payment_method, payment_code, chat_id, expires_at, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `, [userId, amount, currency, paymentMethod, paymentCode, chatId, expiresAt, Date.now()]);
@@ -97,8 +97,8 @@ function createPendingDeposit(data) {
   return db.lastInsertRowId();
 }
 
-function getPendingByCode(paymentCode) {
-  const result = db.query(`
+async function getPendingByCode(paymentCode) {
+  const result = await db.query(`
     SELECT id, user_id, amount, currency, payment_method, payment_code, chat_id, created_at, expires_at
     FROM pending_deposits
     WHERE payment_code = ? AND status = 'pending'
@@ -120,8 +120,8 @@ function getPendingByCode(paymentCode) {
   };
 }
 
-function getAllPendingDeposits() {
-  const result = db.query(`
+async function getAllPendingDeposits() {
+  const result = await db.query(`
     SELECT id, user_id, amount, currency, payment_method, payment_code, chat_id, created_at, expires_at
     FROM pending_deposits
     WHERE status = 'pending'
@@ -143,19 +143,19 @@ function getAllPendingDeposits() {
   }));
 }
 
-function updatePendingDepositStatus(id, status) {
-  const check = db.query(`SELECT id FROM pending_deposits WHERE id = ? AND status = 'pending'`, [id]);
+async function updatePendingDepositStatus(id, status) {
+  const check = await db.query(`SELECT id FROM pending_deposits WHERE id = ? AND status = 'pending'`, [id]);
   const hasPending = check.length > 0 && check[0].values.length > 0;
   
   if (hasPending) {
-    db.run(`UPDATE pending_deposits SET status = ? WHERE id = ?`, [status, id]);
+    await db.run(`UPDATE pending_deposits SET status = ? WHERE id = ?`, [status, id]);
     return 1;
   }
   return 0;
 }
 
-function getPendingDepositById(id) {
-  const result = db.query(`
+async function getPendingDepositById(id) {
+  const result = await db.query(`
     SELECT id, user_id, amount, currency, payment_method, payment_code, chat_id, status, created_at, expires_at
     FROM pending_deposits WHERE id = ?
   `, [id]);

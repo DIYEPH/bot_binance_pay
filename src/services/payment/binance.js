@@ -54,10 +54,6 @@ async function checkPayment(note, amount, currency = 'USDT') {
   }
 }
 
-function isConfigured() {
-  return !!(API_KEY && SECRET_KEY);
-}
-
 function getPaymentInstructions(amount, note, currency = 'USDT') {
   return {
     method: 'binance',
@@ -68,4 +64,4 @@ function getPaymentInstructions(amount, note, currency = 'USDT') {
   };
 }
 
-module.exports = { getTransactionHistory, checkPayment, isConfigured, getPaymentInstructions };
+module.exports = { checkPayment, getPaymentInstructions };

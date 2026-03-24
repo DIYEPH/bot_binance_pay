@@ -18,5 +18,11 @@ module.exports = {
   REFERRER_BONUS: parseFloat(process.env.REFERRER_BONUS) || 1,
   REFEREE_BONUS: parseFloat(process.env.REFEREE_BONUS) || 0.5,
   MIN_DEPOSIT_FOR_BONUS: parseFloat(process.env.MIN_DEPOSIT_FOR_BONUS) || 5,
-  DEPOSIT_EXPIRES_MINUTES: parseInt(process.env.DEPOSIT_EXPIRES_MINUTES) || 15
+  DEPOSIT_EXPIRES_MINUTES: parseInt(process.env.DEPOSIT_EXPIRES_MINUTES) || 15,
+
+  MYSQL_HOST: process.env.MYSQL_HOST,
+  MYSQL_PORT: parseInt(process.env.MYSQL_PORT) || 3306,
+  MYSQL_USER: process.env.MYSQL_USER,
+  MYSQL_PASSWORD: process.env.MYSQL_PASSWORD,
+  MYSQL_DATABASE: process.env.MYSQL_DATABASE
 };

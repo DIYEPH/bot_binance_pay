@@ -19,6 +19,7 @@ module.exports = {
   history_btn: '📋 历史记录',
   deposit_btn: '💰 充值',
   credits_btn: '🎁 免费积分',
+  language_btn: '🌐 选择语言',
   contact_admin: '💬 联系客服',
 
   // Products
@@ -31,12 +32,12 @@ module.exports = {
 
   // Payment
   payment_title: '💳 选择支付方式',
-  your_balance: '💵 您的余额：',
+  your_balance: '您的余额：',
   balance_label: '• 余额：{amount}',
   credits_label: '• 免费积分：{amount}',
   select_payment: '⛄ 选择支付方式：',
   pay_with_credits: '🎁 使用积分 ({amount})',
-  pay_with_balance: '💵 使用余额 ({amount})',
+  pay_with_balance: '使用余额 ({amount})',
   pay_with_both: '🔄 积分+余额',
   pay_binance: '💰 币安支付',
   pay_bank: '🏦 银行转账',
@@ -79,25 +80,25 @@ module.exports = {
   balance_section: '余额',
   stats_section: '统计',
   completed_orders: '🛍️ 已完成订单：{count}',
-  balance_spent_label: '💵 余额消费：{amount}',
+  balance_spent_label: '余额消费：{amount}',
   credits_spent_label: '🎁 积分消费：{amount}',
 
   // Balance
   balance_title: '💰 我的余额',
-  current_balance: '💵 余额：{amount}',
+  current_balance: '余额：{amount}',
   current_credits: '🎁 免费积分：{amount}',
   total_balance: '📊 总计：{amount}',
 
   // Deposit
   deposit_title: '充值',
-  deposit_current: '💵 当前余额：{amount}',
+  deposit_current: '当前余额：{amount}',
   select_deposit_method: '⛄ 选择充值方式：',
   deposit_binance: '币安支付 (USDT)',
   deposit_bank: '🏦 银行转账',
   deposit_amount_title: '充值 - {method}',
   deposit_currency: '💱 货币：{currency}',
   select_amount: '⛄ 选择充值金额：',
-  enter_amount: '输入充值金额：',
+  enter_amount: '📝 输入充值金额：',
   invalid_amount: '✖️ 金额无效！',
   min_amount: '✖️ 最低金额为 {amount}！',
   deposit_success: '✅ 充值成功！\n\n💰 已添加 {amount} 到您的账户！',
@@ -107,7 +108,7 @@ module.exports = {
   expires_30_min: '⏳ {minutes}分钟后过期',
 
   // Admin notifications
-  admin_new_deposit: '💰 新充值\n👤 用户：{userId}\n💵 {amount} {currency}\n📱 {method}',
+  admin_new_deposit: '💰 新充值\n👤 用户：{userId}\n{amount} {currency}\n📱 {method}',
 
   // Credits / Referral
   credits_title: '免费积分',

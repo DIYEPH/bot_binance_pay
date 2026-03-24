@@ -5,7 +5,7 @@ const Wallet = require('./wallet');
 const EVENT_TYPES = { WELCOME: 'welcome', DEPOSIT: 'deposit', PURCHASE: 'purchase', PROMO: 'promo', REFERRAL: 'referral', MANUAL: 'manual' };
 const REWARD_TYPES = { FIXED: 'fixed', PERCENT: 'percent' };
 
-function createEvent(data) {
+async function createEvent(data) {
   const {
     code = null,
     name,
@@ -20,7 +20,7 @@ function createEvent(data) {
     is_active = true
   } = data;
 
-  db.run(`
+  await db.run(`
     INSERT INTO events (code, name, type, reward_amount, reward_type, min_amount, max_claims, max_per_user, start_date, end_date, is_active, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
@@ -41,8 +41,8 @@ function createEvent(data) {
   return db.lastInsertRowId();
 }
 
-function getEventById(id) {
-  const result = db.query(`
+async function getEventById(id) {
+  const result = await db.query(`
     SELECT id, code, name, type, reward_amount, reward_type, min_amount, 
            max_claims, max_per_user, start_date, end_date, is_active, created_at
     FROM events WHERE id = ?
@@ -53,8 +53,8 @@ function getEventById(id) {
   return mapEventRow(result[0].values[0]);
 }
 
-function getEventByCode(code) {
-  const result = db.query(`
+async function getEventByCode(code) {
+  const result = await db.query(`
     SELECT id, code, name, type, reward_amount, reward_type, min_amount, 
            max_claims, max_per_user, start_date, end_date, is_active, created_at
     FROM events WHERE code = ? AND is_active = 1
@@ -65,9 +65,9 @@ function getEventByCode(code) {
   return mapEventRow(result[0].values[0]);
 }
 
-function getEventsByType(type, activeOnly = true) {
+async function getEventsByType(type, activeOnly = true) {
   const whereClause = activeOnly ? 'AND is_active = 1' : '';
-  const result = db.query(`
+  const result = await db.query(`
     SELECT id, code, name, type, reward_amount, reward_type, min_amount, 
            max_claims, max_per_user, start_date, end_date, is_active, created_at
     FROM events WHERE type = ? ${whereClause}
@@ -79,9 +79,9 @@ function getEventsByType(type, activeOnly = true) {
   return result[0].values.map(mapEventRow);
 }
 
-function getAllEvents(activeOnly = false) {
+async function getAllEvents(activeOnly = false) {
   const whereClause = activeOnly ? 'WHERE is_active = 1' : '';
-  const result = db.query(`
+  const result = await db.query(`
     SELECT id, code, name, type, reward_amount, reward_type, min_amount, 
            max_claims, max_per_user, start_date, end_date, is_active, created_at
     FROM events ${whereClause}
@@ -93,7 +93,7 @@ function getAllEvents(activeOnly = false) {
   return result[0].values.map(mapEventRow);
 }
 
-function updateEvent(id, data) {
+async function updateEvent(id, data) {
   const fields = [];
   const values = [];
 
@@ -110,32 +110,32 @@ function updateEvent(id, data) {
   if (fields.length === 0) return;
 
   values.push(id);
-  db.run(`UPDATE events SET ${fields.join(', ')} WHERE id = ?`, values);
+  await db.run(`UPDATE events SET ${fields.join(', ')} WHERE id = ?`, values);
 }
 
-function deleteEvent(id) {
-  db.run(`DELETE FROM event_claims WHERE event_id = ?`, [id]);
-  db.run(`DELETE FROM events WHERE id = ?`, [id]);
+async function deleteEvent(id) {
+  await db.run(`DELETE FROM event_claims WHERE event_id = ?`, [id]);
+  await db.run(`DELETE FROM events WHERE id = ?`, [id]);
 }
 
-function canClaimEvent(userId, event, transactionAmount = 0) {
+async function canClaimEvent(userId, event, transactionAmount = 0) {
   const now = Date.now();
   if (!event.is_active) return { canClaim: false, reason: 'Event is not active' };
   if (event.start_date && now < event.start_date) return { canClaim: false, reason: 'Event has not started yet' };
   if (event.end_date && now > event.end_date) return { canClaim: false, reason: 'Event has ended' };
   if (event.min_amount > 0 && transactionAmount < event.min_amount) return { canClaim: false, reason: `Minimum amount is ${event.min_amount}` };
-  if (event.max_claims && getTotalClaims(event.id) >= event.max_claims) return { canClaim: false, reason: 'Event has reached maximum claims' };
-  if (event.max_per_user && getUserClaims(userId, event.id) >= event.max_per_user) return { canClaim: false, reason: 'You have already claimed this event' };
+  if (event.max_claims && await getTotalClaims(event.id) >= event.max_claims) return { canClaim: false, reason: 'Event has reached maximum claims' };
+  if (event.max_per_user && await getUserClaims(userId, event.id) >= event.max_per_user) return { canClaim: false, reason: 'You have already claimed this event' };
   return { canClaim: true };
 }
 
-function claimEvent(userId, eventId, transactionAmount = 0, referenceId = null) {
-  const event = getEventById(eventId);
+async function claimEvent(userId, eventId, transactionAmount = 0, referenceId = null) {
+  const event = await getEventById(eventId);
   if (!event) {
     return { success: false, message: 'Event not found' };
   }
 
-  const check = canClaimEvent(userId, event, transactionAmount);
+  const check = await canClaimEvent(userId, event, transactionAmount);
   if (!check.canClaim) {
     return { success: false, message: check.reason };
   }
@@ -143,8 +143,8 @@ function claimEvent(userId, eventId, transactionAmount = 0, referenceId = null) 
   let rewardAmount = event.reward_amount;
   if (event.reward_type === REWARD_TYPES.PERCENT && transactionAmount > 0) rewardAmount = transactionAmount * (event.reward_amount / 100);
 
-  Wallet.addCredits(userId, rewardAmount, 'event', `Event: ${event.name}`);
-  db.run(`
+  await Wallet.addCredits(userId, rewardAmount, 'event', `Event: ${event.name}`);
+  await db.run(`
     INSERT INTO event_claims (event_id, user_id, amount, reference_id, created_at)
     VALUES (?, ?, ?, ?, ?)
   `, [eventId, userId, rewardAmount, referenceId, Date.now()]);
@@ -156,8 +156,8 @@ function claimEvent(userId, eventId, transactionAmount = 0, referenceId = null) 
   };
 }
 
-function claimPromoCode(userId, code) {
-  const event = getEventByCode(code);
+async function claimPromoCode(userId, code) {
+  const event = await getEventByCode(code);
   if (!event) {
     return { success: false, message: 'Invalid promo code' };
   }
@@ -169,14 +169,14 @@ function claimPromoCode(userId, code) {
   return claimEvent(userId, event.id, 0, `promo:${code}`);
 }
 
-function processAutoEvents(userId, eventType, amount = 0, referenceId = null) {
-  const events = getEventsByType(eventType, true);
+async function processAutoEvents(userId, eventType, amount = 0, referenceId = null) {
+  const events = await getEventsByType(eventType, true);
   const claimed = [];
 
   for (const event of events) {
-    const check = canClaimEvent(userId, event, amount);
+    const check = await canClaimEvent(userId, event, amount);
     if (check.canClaim) {
-      const result = claimEvent(userId, event.id, amount, referenceId);
+      const result = await claimEvent(userId, event.id, amount, referenceId);
       if (result.success) {
         claimed.push({
           eventName: event.name,
@@ -189,20 +189,20 @@ function processAutoEvents(userId, eventType, amount = 0, referenceId = null) {
   return claimed;
 }
 
-function getTotalClaims(eventId) {
-  const result = db.query(`SELECT COUNT(*) FROM event_claims WHERE event_id = ?`, [eventId]);
+async function getTotalClaims(eventId) {
+  const result = await db.query(`SELECT COUNT(*) FROM event_claims WHERE event_id = ?`, [eventId]);
   return result[0]?.values[0][0] || 0;
 }
 
-function getUserClaims(userId, eventId) {
-  const result = db.query(`
+async function getUserClaims(userId, eventId) {
+  const result = await db.query(`
     SELECT COUNT(*) FROM event_claims WHERE user_id = ? AND event_id = ?
   `, [userId, eventId]);
   return result[0]?.values[0][0] || 0;
 }
 
-function getEventStats(eventId) {
-  const result = db.query(`
+async function getEventStats(eventId) {
+  const result = await db.query(`
     SELECT COUNT(*) as claims, SUM(amount) as total_amount, COUNT(DISTINCT user_id) as unique_users
     FROM event_claims WHERE event_id = ?
   `, [eventId]);

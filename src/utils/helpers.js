@@ -3,11 +3,13 @@ const config = require('../config');
 
 function formatPrice(price, currency = 'USDT') {
   const num = Number(price || 0);
-  return currency === 'VND' ? num.toLocaleString('vi-VN') + ' VND' : num + ' USDT';
+  if (Number.isNaN(num)) return currency === 'VND' ? '0 VND' : '0 USDT';
+  const rounded = Math.round(num * 100) / 100;
+  return currency === 'VND' ? rounded.toLocaleString('vi-VN') + ' VND' : rounded + ' USDT';
 }
 
 function formatCredits(credits) {
-  return Number(credits || 0) + ' 🪙';
+  return Number(credits || 0) + ' Coin';
 }
 
 function formatNumber(num) {
@@ -40,17 +42,6 @@ function getAdminUsername() {
   return (config.ADMIN_USER_NAME || '').trim().replace('@', '');
 }
 
-function formatDate(date) {
-  const d = new Date(date);
-  return d.toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
 function formatDateShort(date) {
   const d = new Date(date);
   return d.toLocaleString('vi-VN', {
@@ -61,4 +52,4 @@ function formatDateShort(date) {
   });
 }
 
-module.exports = { formatPrice, formatCredits, formatNumber, isAdmin, getFullName, generateCode, generateReferralCode, getAdminUsername, formatDate, formatDateShort };
+module.exports = { formatPrice, formatCredits, formatNumber, isAdmin, getFullName, generateCode, generateReferralCode, getAdminUsername, formatDateShort };

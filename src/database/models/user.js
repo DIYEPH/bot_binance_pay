@@ -2,22 +2,22 @@
 const db = require('../index');
 const { generateReferralCode } = require('../../utils/helpers');
 
-function getOrCreate(id, firstName = '', username = '') {
-  let user = getById(id);
+async function getOrCreate(id, firstName = '', username = '') {
+  let user = await getById(id);
 
   if (!user) {
     const referralCode = generateReferralCode(id);
-    db.run(`INSERT INTO users (id, first_name, username, referral_code, created_at) VALUES (?, ?, ?, ?, ?)`, [id, firstName, username, referralCode, Date.now()]);
-    user = getById(id);
+    await db.run(`INSERT INTO users (id, first_name, username, referral_code, created_at) VALUES (?, ?, ?, ?, ?)`, [id, firstName, username, referralCode, Date.now()]);
+    user = await getById(id);
   } else {
-    db.run(`UPDATE users SET first_name = ?, username = ? WHERE id = ?`, [firstName, username, id]);
+    await db.run(`UPDATE users SET first_name = ?, username = ? WHERE id = ?`, [firstName, username, id]);
   }
 
   return user;
 }
 
-function getById(id) {
-  const result = db.query(
+async function getById(id) {
+  const result = await db.query(
     `SELECT id, first_name, username, language, balance, credits, referral_code, referred_by, balance_spent, credits_spent, created_at 
      FROM users WHERE id = ?`,
     [id]
@@ -41,8 +41,8 @@ function getById(id) {
   };
 }
 
-function getByReferralCode(code) {
-  const result = db.query(
+async function getByReferralCode(code) {
+  const result = await db.query(
     `SELECT id, first_name, username, balance, credits, referral_code, referred_by, balance_spent, credits_spent 
      FROM users WHERE referral_code = ?`,
     [code.toUpperCase()]
@@ -64,17 +64,17 @@ function getByReferralCode(code) {
   };
 }
 
-function setReferrer(userId, referrerId) {
-  const user = getById(userId);
+async function setReferrer(userId, referrerId) {
+  const user = await getById(userId);
   if (!user || user.referred_by) return false; // Already has referrer
   if (userId === referrerId) return false; // Can't refer yourself
 
-  db.run(`UPDATE users SET referred_by = ? WHERE id = ?`, [referrerId, userId]);
+  await db.run(`UPDATE users SET referred_by = ? WHERE id = ?`, [referrerId, userId]);
   return true;
 }
 
-function getReferrals(referrerId) {
-  const result = db.query(
+async function getReferrals(referrerId) {
+  const result = await db.query(
     `SELECT id, first_name, username, balance_spent, credits_spent, created_at 
      FROM users WHERE referred_by = ? ORDER BY created_at DESC`,
     [referrerId]
@@ -92,42 +92,42 @@ function getReferrals(referrerId) {
   }));
 }
 
-function addBalance(userId, amount) {
-  db.run(`UPDATE users SET balance = balance + ? WHERE id = ?`, [amount, userId]);
+async function addBalance(userId, amount) {
+  await db.run(`UPDATE users SET balance = balance + ? WHERE id = ?`, [amount, userId]);
   return true;
 }
 
-function deductBalance(userId, amount) {
-  const user = getById(userId);
+async function deductBalance(userId, amount) {
+  const user = await getById(userId);
   if (!user || user.balance < amount) return false;
 
-  db.run(`UPDATE users SET balance = balance - ? WHERE id = ?`, [amount, userId]);
+  await db.run(`UPDATE users SET balance = balance - ? WHERE id = ?`, [amount, userId]);
   return true;
 }
 
-function addCredits(userId, amount) {
-  db.run(`UPDATE users SET credits = credits + ? WHERE id = ?`, [amount, userId]);
+async function addCredits(userId, amount) {
+  await db.run(`UPDATE users SET credits = credits + ? WHERE id = ?`, [amount, userId]);
   return true;
 }
 
-function deductCredits(userId, amount) {
-  const user = getById(userId);
+async function deductCredits(userId, amount) {
+  const user = await getById(userId);
   if (!user || user.credits < amount) return false;
 
-  db.run(`UPDATE users SET credits = credits - ? WHERE id = ?`, [amount, userId]);
+  await db.run(`UPDATE users SET credits = credits - ? WHERE id = ?`, [amount, userId]);
   return true;
 }
 
-function addBalanceSpent(userId, amount) {
-  db.run(`UPDATE users SET balance_spent = balance_spent + ? WHERE id = ?`, [amount, userId]);
+async function addBalanceSpent(userId, amount) {
+  await db.run(`UPDATE users SET balance_spent = balance_spent + ? WHERE id = ?`, [amount, userId]);
 }
 
-function addCreditsSpent(userId, amount) {
-  db.run(`UPDATE users SET credits_spent = credits_spent + ? WHERE id = ?`, [amount, userId]);
+async function addCreditsSpent(userId, amount) {
+  await db.run(`UPDATE users SET credits_spent = credits_spent + ? WHERE id = ?`, [amount, userId]);
 }
 
-function getAll(limit = 100) {
-  const result = db.query(
+async function getAll(limit = 100) {
+  const result = await db.query(
     `SELECT id, first_name, username, language, balance, credits, balance_spent, credits_spent, created_at 
      FROM users ORDER BY created_at DESC LIMIT ?`,
     [limit]
@@ -148,21 +148,13 @@ function getAll(limit = 100) {
   }));
 }
 
-function setLanguage(userId, langCode) {
-  db.run(`UPDATE users SET language = ? WHERE id = ?`, [langCode, userId]);
+async function setLanguage(userId, langCode) {
+  await db.run(`UPDATE users SET language = ? WHERE id = ?`, [langCode, userId]);
 }
 
-function count() {
-  const result = db.query('SELECT COUNT(*) FROM users');
+async function count() {
+  const result = await db.query('SELECT COUNT(*) FROM users');
   return result[0]?.values[0][0] || 0;
 }
 
-function setBalance(userId, amount) {
-  db.run(`UPDATE users SET balance = ? WHERE id = ?`, [amount, userId]);
-}
-
-function setCredits(userId, amount) {
-  db.run(`UPDATE users SET credits = ? WHERE id = ?`, [amount, userId]);
-}
-
-module.exports = { getOrCreate, getById, getByReferralCode, setReferrer, getReferrals, addBalance, deductBalance, addCredits, deductCredits, addBalanceSpent, addCreditsSpent, getAll, count, setBalance, setCredits, setLanguage };
+module.exports = { getOrCreate, getById, getByReferralCode, setReferrer, getReferrals, addBalance, deductBalance, addCredits, deductCredits, addBalanceSpent, addCreditsSpent, getAll, count, setLanguage };

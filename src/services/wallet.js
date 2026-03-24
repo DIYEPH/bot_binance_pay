@@ -2,8 +2,8 @@
 const User = require('../database/models/user');
 const Transaction = require('../database/models/transaction');
 
-function getWallet(userId) {
-  const user = User.getById(userId);
+async function getWallet(userId) {
+  const user = await User.getById(userId);
   if (!user) return null;
 
   const balance = user.balance || 0;
@@ -20,12 +20,12 @@ function getWallet(userId) {
   };
 }
 
-function deposit(userId, amount, paymentMethod, note = '') {
+async function deposit(userId, amount, paymentMethod, note = '') {
   if (amount <= 0) return false;
 
-  User.addBalance(userId, amount);
+  await User.addBalance(userId, amount);
 
-  Transaction.create({
+  await Transaction.create({
     userId,
     type: Transaction.TYPES.DEPOSIT,
     amount,
@@ -37,12 +37,12 @@ function deposit(userId, amount, paymentMethod, note = '') {
   return true;
 }
 
-function addCredits(userId, amount, type = 'event', note = '') {
+async function addCredits(userId, amount, type = 'event', note = '') {
   if (amount <= 0) return false;
 
-  User.addCredits(userId, amount);
+  await User.addCredits(userId, amount);
 
-  Transaction.create({
+  await Transaction.create({
     userId,
     type,
     amount,
@@ -54,8 +54,8 @@ function addCredits(userId, amount, type = 'event', note = '') {
   return true;
 }
 
-function purchase(userId, amount, preferredMethod = 'auto') {
-  const wallet = getWallet(userId);
+async function purchase(userId, amount, preferredMethod = 'auto') {
+  const wallet = await getWallet(userId);
   if (!wallet) {
     return { success: false, message: 'User not found' };
   }
@@ -76,15 +76,15 @@ function purchase(userId, amount, preferredMethod = 'auto') {
   }
 
   if (usedCredits > 0) {
-    User.deductCredits(userId, usedCredits);
-    User.addCreditsSpent(userId, usedCredits);
+    await User.deductCredits(userId, usedCredits);
+    await User.addCreditsSpent(userId, usedCredits);
   }
   if (usedBalance > 0) {
-    User.deductBalance(userId, usedBalance);
-    User.addBalanceSpent(userId, usedBalance);
+    await User.deductBalance(userId, usedBalance);
+    await User.addBalanceSpent(userId, usedBalance);
   }
 
-  Transaction.create({
+  await Transaction.create({
     userId,
     type: Transaction.TYPES.PURCHASE,
     amount: -amount,
@@ -99,12 +99,12 @@ function purchase(userId, amount, preferredMethod = 'auto') {
   };
 }
 
-function adminAddBalance(userId, amount, adminId, note = '') {
+async function adminAddBalance(userId, amount, adminId, note = '') {
   if (amount <= 0) return false;
 
-  User.addBalance(userId, amount);
+  await User.addBalance(userId, amount);
 
-  Transaction.create({
+  await Transaction.create({
     userId,
     type: Transaction.TYPES.ADMIN_ADD,
     amount,
@@ -114,12 +114,12 @@ function adminAddBalance(userId, amount, adminId, note = '') {
   return true;
 }
 
-function adminAddCredits(userId, amount, adminId, note = '') {
+async function adminAddCredits(userId, amount, adminId, note = '') {
   if (amount <= 0) return false;
 
-  User.addCredits(userId, amount);
+  await User.addCredits(userId, amount);
 
-  Transaction.create({
+  await Transaction.create({
     userId,
     type: Transaction.TYPES.ADMIN_ADD,
     amount,
@@ -130,16 +130,16 @@ function adminAddCredits(userId, amount, adminId, note = '') {
   return true;
 }
 
-function refund(userId, amount, toWallet = 'balance', note = '') {
+async function refund(userId, amount, toWallet = 'balance', note = '') {
   if (amount <= 0) return false;
 
   if (toWallet === 'credits') {
-    User.addCredits(userId, amount);
+    await User.addCredits(userId, amount);
   } else {
-    User.addBalance(userId, amount);
+    await User.addBalance(userId, amount);
   }
 
-  Transaction.create({
+  await Transaction.create({
     userId,
     type: Transaction.TYPES.REFUND,
     amount,

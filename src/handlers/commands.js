@@ -1,6 +1,7 @@
 // User command handlers (refactored)
 const config = require('../config');
 const User = require('../database/models/user');
+const Category = require('../database/models/category');
 const Product = require('../database/models/product');
 const Order = require('../database/models/order');
 const Wallet = require('../services/wallet');
@@ -13,7 +14,7 @@ const {
   getAdminUsername,
   formatNumber,
 } = require('../utils/helpers');
-const { buildShopKeyboard } = require('../utils/keyboard');
+const { buildCategoryKeyboard } = require('../utils/keyboard');
 const i18n = require('../locales');
 
 // ---------- Small helpers ----------
@@ -32,31 +33,31 @@ function safeSend(bot, chatId, text, extra = {}) {
 
 // ---------- Handlers ----------
 function handleStart(bot) {
-  return (msg, match) => {
+  return async (msg, match) => {
     const userId = msg.from.id;
     const chatId = msg.chat.id;
     const startParam = match?.[1];
 
-    const existingUser = User.getById(userId);
+    const existingUser = await User.getById(userId);
     const isNewUser = !existingUser;
 
-    const user = User.getOrCreate(userId, getFullName(msg.from), msg.from.username || '');
+    const user = await User.getOrCreate(userId, getFullName(msg.from), msg.from.username || '');
     const t = initUserLang(userId, user);
 
     if (isNewUser) {
-      sendWelcomeBonus(bot, chatId, userId);
+      await sendWelcomeBonus(bot, chatId, userId);
     }
 
     if (startParam?.startsWith('ref_')) {
-      processReferral(bot, chatId, userId, startParam, t);
+      await processReferral(bot, chatId, userId, startParam, t);
     }
 
-    showMainMenu(bot, chatId, msg.from);
+    await showMainMenu(bot, chatId, msg.from);
   };
 }
 
-function sendWelcomeBonus(bot, chatId, userId) {
-  const bonuses = Events.processAutoEvents(userId, 'welcome', 0, `welcome:${userId}`);
+async function sendWelcomeBonus(bot, chatId, userId) {
+  const bonuses = await Events.processAutoEvents(userId, 'welcome', 0, `welcome:${userId}`);
   if (!bonuses?.length) return;
 
   const lines = bonuses.map(b => `• ${b.eventName}: +${b.amount} credits`).join('\n');
@@ -64,9 +65,9 @@ function sendWelcomeBonus(bot, chatId, userId) {
   safeSend(bot, chatId, text);
 }
 
-function processReferral(bot, chatId, userId, startParam, t) {
+async function processReferral(bot, chatId, userId, startParam, t) {
   const refCode = startParam.replace('ref_', '');
-  const result = Referral.processReferral(userId, refCode);
+  const result = await Referral.processReferral(userId, refCode);
 
   if (result?.success) {
     safeSend(
@@ -78,7 +79,7 @@ function processReferral(bot, chatId, userId, startParam, t) {
 }
 
 function handleLang(bot) {
-  return (msg) => {
+  return async (msg) => {
     const userId = msg.from.id;
     const t = i18n.getTranslator(userId);
 
@@ -92,25 +93,25 @@ function handleLang(bot) {
 }
 
 function handleMenu(bot) {
-  return (msg) => {
+  return async (msg) => {
     const userId = msg.from.id;
-    const user = User.getOrCreate(userId, getFullName(msg.from), msg.from.username || '');
+    const user = await User.getOrCreate(userId, getFullName(msg.from), msg.from.username || '');
     initUserLang(userId, user);
-    showMainMenu(bot, msg.chat.id, msg.from);
+    await showMainMenu(bot, msg.chat.id, msg.from);
   };
 }
 
 function handleMyId(bot) {
-  return (msg) => {
+  return async (msg) => {
     safeSend(bot, msg.chat.id, `🔖 User ID: \`${msg.from.id}\``, { parse_mode: 'Markdown' });
   };
 }
 
 function handleBalance(bot) {
-  return (msg) => {
+  return async (msg) => {
     const userId = msg.from.id;
     const t = i18n.getTranslator(userId);
-    const wallet = Wallet.getWallet(userId);
+    const wallet = await Wallet.getWallet(userId);
 
     if (!wallet) return safeSend(bot, msg.chat.id, `❌ ${t('error')}`);
 
@@ -118,8 +119,8 @@ function handleBalance(bot) {
       t('balance_title'),
       '━━━━━━━━━━━━━━━━━━━━━',
       '',
-      `💵 ${formatPrice(wallet.balance)}`,
-      `🪙 ${formatCredits(wallet.credits)}`,
+      `${formatPrice(wallet.balance)}`,
+      `${formatCredits(wallet.credits)}`,
       '',
       `📊 ${t('stats_section')}`,
       t('balance_spent_label', { amount: formatPrice(wallet.balanceSpent) }),
@@ -139,10 +140,10 @@ function handleBalance(bot) {
 }
 
 function handleReferral(bot) {
-  return (msg) => {
+  return async (msg) => {
     const userId = msg.from.id;
     const t = i18n.getTranslator(userId);
-    const info = Referral.getReferralInfo(userId);
+    const info = await Referral.getReferralInfo(userId);
 
     if (!info) return safeSend(bot, msg.chat.id, `❌ ${t('error')}`);
 
@@ -181,10 +182,10 @@ function handleReferral(bot) {
 }
 
 function handleHistory(bot) {
-  return (msg) => {
+  return async (msg) => {
     const userId = msg.from.id;
     const t = i18n.getTranslator(userId);
-    const orders = Order.getByUser(userId, 10);
+    const orders = await Order.getByUser(userId, 10);
 
     if (!orders?.length) {
       return safeSend(bot, msg.chat.id, t('no_history'), {
@@ -196,8 +197,8 @@ function handleHistory(bot) {
       const statusIcon = t(`order_status.${o.status}`) || '❓';
       const amountText =
         o.payment_method === 'credits'
-          ? `🪙 ${formatNumber(o.total_price)} credits`
-          : `💵 ${formatPrice(o.total_price)}`;
+          ? `${formatNumber(o.total_price)} Coin credits`
+          : `${formatPrice(o.total_price)}`;
 
       return [
         `${statusIcon} #${o.id}`,
@@ -225,12 +226,12 @@ function register(bot) {
   bot.onText(/\/history/, handleHistory(bot));
 }
 
-function showMainMenu(bot, chatId, user) {
+async function showMainMenu(bot, chatId, user) {
   const t = i18n.getTranslator(user.id);
-  const products = Product.getAll();
+  const categories = await Category.getAll(false);
   const adminUser = getAdminUsername();
-
-  const keyboard = buildShopKeyboard(products, true, adminUser, t);
+  const priceRanges = await Product.getCategoryPriceRanges(true);
+  const keyboard = buildCategoryKeyboard(categories, t, adminUser, priceRanges);
 
   const text = [
     t('shop_name', { name: config.SHOP_NAME }),
@@ -238,7 +239,7 @@ function showMainMenu(bot, chatId, user) {
     '',
     t('welcome', { name: getFullName(user) }),
     '',
-    products.length > 0 ? t('select_product') : t('no_products'),
+    categories.length > 0 ? 'Chọn danh mục để xem sản phẩm' : t('no_products'),
   ].join('\n');
 
   safeSend(bot, chatId, text, {
