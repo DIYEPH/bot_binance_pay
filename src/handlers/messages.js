@@ -1,5 +1,4 @@
 // Text message handlers
-const config = require('../config');
 const Product = require('../database/models/product');
 const Category = require('../database/models/category');
 const Wallet = require('../services/wallet');

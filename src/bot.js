@@ -8,8 +8,14 @@ const commandHandlers = require('./handlers/commands');
 const callbackHandlers = require('./handlers/callbacks');
 const adminHandlers = require('./handlers/admin');
 const messageHandlers = require('./handlers/messages');
+const WebSocket = require('ws');
 
 const PAYMENT_CHECK_INTERVAL = 30000;
+const BOT_HEARTBEAT_INTERVAL = 10000;
+const BOT_WS_PORT = parseInt(process.env.BOT_WS_PORT || '3001', 10);
+
+let botUsername = '';
+let wss;
 
 async function startBot() {
   console.log('🚀 Starting bot...');
@@ -26,6 +32,7 @@ async function startBot() {
 
   try {
     bot.botInfo = await bot.getMe();
+    botUsername = bot.botInfo.username || '';
     console.log(`🤖 Bot: @${bot.botInfo.username}`);
   } catch (err) {
     console.error('Failed to get bot info:', err.message);
@@ -48,6 +55,8 @@ async function startBot() {
   bot.on('polling_error', (err) => console.error('Polling error:', err.message));
 
   startPaymentChecker(bot);
+  startBotHeartbeat();
+  startBotSocket();
   console.log(`🏪 ${config.SHOP_NAME} is running!`);
 }
 
@@ -79,6 +88,40 @@ function startPaymentChecker(bot) {
       console.error('Deposit checker error:', err.message);
     }
   }, PAYMENT_CHECK_INTERVAL);
+}
+
+function startBotHeartbeat() {
+  setInterval(async () => {
+    try {
+      await db.setBotHeartbeat(Date.now());
+    } catch (err) {
+      console.error('Bot heartbeat error:', err.message);
+    }
+  }, BOT_HEARTBEAT_INTERVAL);
+}
+
+function startBotSocket() {
+  if (wss) return;
+  wss = new WebSocket.Server({ port: BOT_WS_PORT });
+
+  wss.on('connection', (ws) => {
+    ws.send(JSON.stringify({ type: 'status', status: 'online', username: botUsername, ts: Date.now() }));
+  });
+
+  setInterval(() => {
+    const payload = JSON.stringify({ type: 'status', status: 'online', username: botUsername, ts: Date.now() });
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) client.send(payload);
+    });
+  }, BOT_HEARTBEAT_INTERVAL);
+
+  wss.on('listening', () => {
+    console.log(`WS server listening on ${BOT_WS_PORT}`);
+  });
+
+  wss.on('error', (err) => {
+    console.error('WS server error:', err.message);
+  });
 }
 
 startBot().catch(err => {

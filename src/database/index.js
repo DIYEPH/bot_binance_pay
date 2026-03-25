@@ -4,7 +4,19 @@ const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const config = require('../config');
 
-const DB_PATH = path.join(__dirname, '../../data/teleshop.db');
+const DB_FILE = process.env.DB_FILE || 'teleshop.db';
+const repoRoot = path.resolve(__dirname, '../../');
+let dbPath = DB_FILE;
+
+if (!path.isAbsolute(dbPath)) {
+  if (!dbPath.includes('/') && !dbPath.includes('\\')) {
+    dbPath = path.join(repoRoot, 'data', dbPath);
+  } else {
+    dbPath = path.resolve(repoRoot, dbPath);
+  }
+}
+
+const DB_PATH = dbPath;
 let driver = 'sqlite';
 let sqliteDb = null;
 let mysqlConn = null;
@@ -27,7 +39,7 @@ async function initDB() {
       charset: 'utf8mb4'
     });
     createTablesMySQL();
-    console.log('✅ Database initialized (MySQL)');
+    console.log(`✅ Database initialized (MySQL) ${config.MYSQL_HOST || ''}/${config.MYSQL_DATABASE || ''}`);
     return;
   }
 
@@ -38,7 +50,7 @@ async function initDB() {
   sqliteDb = await createSqliteDatabase(DB_PATH);
   await sqliteExec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;`);
   await createTablesSQLite();
-  console.log('✅ Database initialized (SQLite)');
+  console.log(`✅ Database initialized (SQLite) ${DB_PATH}`);
 }
 
 function createSqliteDatabase(filePath) {
@@ -205,6 +217,11 @@ async function createTablesSQLite() {
       min_deposit_for_bonus REAL DEFAULT 1
     );
 
+    CREATE TABLE IF NOT EXISTS bot_status (
+      id INTEGER PRIMARY KEY,
+      last_seen INTEGER NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_categories_active ON categories(is_active);
     CREATE INDEX IF NOT EXISTS idx_stock_product ON stock(product_id, is_sold);
     CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id, status);
@@ -356,6 +373,11 @@ function createTablesMySQL() {
       min_deposit_for_bonus DECIMAL(18,4) DEFAULT 1
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`,
 
+    `CREATE TABLE IF NOT EXISTS bot_status (
+      id INT PRIMARY KEY,
+      last_seen BIGINT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`,
+
     `CREATE INDEX IF NOT EXISTS idx_categories_active ON categories(is_active);`,
     `CREATE INDEX IF NOT EXISTS idx_stock_product ON stock(product_id, is_sold);`,
     `CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id, status);`,
@@ -371,6 +393,27 @@ function createTablesMySQL() {
   for (const stmt of statements) {
     mysqlConn.query(stmt);
   }
+}
+
+async function setBotHeartbeat(timestamp) {
+  if (driver === 'sqlite') {
+    await sqliteRun(
+      'INSERT INTO bot_status (id, last_seen) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET last_seen = excluded.last_seen',
+      [timestamp]
+    );
+    return;
+  }
+
+  await run(
+    'INSERT INTO bot_status (id, last_seen) VALUES (1, ?) ON DUPLICATE KEY UPDATE last_seen = VALUES(last_seen)',
+    [timestamp]
+  );
+}
+
+async function getBotHeartbeat() {
+  const result = await query('SELECT last_seen FROM bot_status WHERE id = 1');
+  if (!result.length || !result[0].values.length) return 0;
+  return result[0].values[0][0] || 0;
 }
 
 function saveDB() {
@@ -426,4 +469,4 @@ function lastInsertRowId() {
   return _lastInsertId || 0;
 }
 
-module.exports = { initDB, saveDB, getDB, query, run, lastInsertRowId };
+module.exports = { initDB, saveDB, getDB, query, run, lastInsertRowId, setBotHeartbeat, getBotHeartbeat };
