@@ -14,6 +14,7 @@ module.exports = {
   shop_name: '⛄ {name}',
   welcome: '✨ 你好，{name}！',
   select_product: '🛒 选择要购买的产品：',
+  select_category: '📂 选择分类查看产品',
   no_products: '⛄ 暂无产品！',
   profile_btn: '👤 个人中心',
   history_btn: '📋 历史记录',
@@ -49,9 +50,9 @@ module.exports = {
   binance_step1: '1. 打开币安App',
   binance_step2: '2. 进入币安支付',
   binance_step3: '3. 选择"发送"',
-  binance_step4: '4. 输入币安ID: *{id}*',
+  binance_step4: '4. 输入币安ID: `{id}`',
   binance_step5: '5. 金额: *{amount}*',
-  binance_step6: '6. 备注（*重要*）: *{note}*',
+  binance_step6: '6. 备注（*重要*）: `{note}`',
   binance_step7: '7. 确认发送',
   bank_info: '🏦 银行转账信息',
   bank_name: '• 银行：{name}',
@@ -69,7 +70,7 @@ module.exports = {
   // Accounts delivery
   accounts_title: '🔑 账号：',
   change_password: '⚠️ 请立即修改密码！',
-  buy_more: '🛒 继续购买？输入 /menu',
+  buy_more: '🛒 继续购买？输入 /start',
 
   // Profile
   profile_title: '个人中心',

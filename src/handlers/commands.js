@@ -1,8 +1,6 @@
 // User command handlers (refactored)
 const config = require('../config');
 const User = require('../database/models/user');
-const Category = require('../database/models/category');
-const Product = require('../database/models/product');
 const Order = require('../database/models/order');
 const Wallet = require('../services/wallet');
 const Referral = require('../services/referral');
@@ -11,10 +9,9 @@ const {
   formatPrice,
   formatCredits,
   getFullName,
-  getAdminUsername,
   formatNumber,
 } = require('../utils/helpers');
-const { buildCategoryKeyboard } = require('../utils/keyboard');
+const { buildMainMenuPayload } = require('../utils/mainMenu');
 const i18n = require('../locales');
 
 // ---------- Small helpers ----------
@@ -92,14 +89,6 @@ function handleLang(bot) {
   };
 }
 
-function handleMenu(bot) {
-  return async (msg) => {
-    const userId = msg.from.id;
-    const user = await User.getOrCreate(userId, getFullName(msg.from), msg.from.username || '');
-    initUserLang(userId, user);
-    await showMainMenu(bot, msg.chat.id, msg.from);
-  };
-}
 
 function handleMyId(bot) {
   return async (msg) => {
@@ -219,7 +208,6 @@ function handleHistory(bot) {
 function register(bot) {
   bot.onText(/\/start(?:\s+(.*))?/, handleStart(bot));
   bot.onText(/\/lang/, handleLang(bot));
-  bot.onText(/\/menu/, handleMenu(bot));
   bot.onText(/\/myid/, handleMyId(bot));
   bot.onText(/\/balance/, handleBalance(bot));
   bot.onText(/\/referral/, handleReferral(bot));
@@ -228,19 +216,7 @@ function register(bot) {
 
 async function showMainMenu(bot, chatId, user) {
   const t = i18n.getTranslator(user.id);
-  const categories = await Category.getAll(false);
-  const adminUser = getAdminUsername();
-  const priceRanges = await Product.getCategoryPriceRanges(true);
-  const keyboard = buildCategoryKeyboard(categories, t, adminUser, priceRanges);
-
-  const text = [
-    t('shop_name', { name: config.SHOP_NAME }),
-    '━━━━━━━━━━━━━━━━━━━━━',
-    '',
-    t('welcome', { name: getFullName(user) }),
-    '',
-    categories.length > 0 ? 'Chọn danh mục để xem sản phẩm' : t('no_products'),
-  ].join('\n');
+  const { text, keyboard } = await buildMainMenuPayload(user, t, { includeWelcome: true });
 
   safeSend(bot, chatId, text, {
     reply_markup: { inline_keyboard: keyboard },

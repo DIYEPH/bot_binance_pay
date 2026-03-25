@@ -1,9 +1,10 @@
 // i18n service
 const en = require('./en');
+const ru = require('./ru');
 const zh = require('./zh');
 const vi = require('./vi');
 
-const languages = { en, zh, vi };
+const languages = { en, ru, zh, vi };
 const defaultLang = 'en';
 const userLangs = new Map();
 

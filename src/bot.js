@@ -33,7 +33,6 @@ async function startBot() {
 
   bot.setMyCommands([
     { command: 'start', description: 'Start / 开始 / Bắt đầu' },
-    { command: 'menu', description: 'Shop / 商店 / Mua hàng' },
     { command: 'balance', description: 'Balance / 余额 / Số dư' },
     { command: 'referral', description: 'Referral / 邀请 / Giới thiệu' },
     { command: 'history', description: 'History / 历史 / Lịch sử' },

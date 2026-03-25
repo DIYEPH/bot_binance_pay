@@ -14,6 +14,7 @@ module.exports = {
   shop_name: '⛄ {name}',
   welcome: '✨ Hello, {name}!',
   select_product: '🛒 Select a product to buy:',
+  select_category: '📂 Select a category to view products',
   no_products: '⛄ No products available!',
   profile_btn: '👤 Profile',
   history_btn: '📋 History',
@@ -51,9 +52,9 @@ module.exports = {
   binance_step1: '1. Open Binance App',
   binance_step2: '2. Go to Binance Pay',
   binance_step3: '3. Select "Send"',
-  binance_step4: '4. Enter Binance ID: *{id}*',
+  binance_step4: '4. Enter Binance ID: `{id}`',
   binance_step5: '5. Amount: *{amount}*',
-  binance_step6: '6. Note (*IMPORTANT*): *{note}*',
+  binance_step6: '6. Note (*IMPORTANT*): `{note}`',
   binance_step7: '7. Confirm & Send',
   bank_info: '🏦 BANK TRANSFER INFO',
   bank_name: '• Bank: {name}',
@@ -71,7 +72,7 @@ module.exports = {
   // Accounts delivery
   accounts_title: '🔑 ACCOUNTS:',
   change_password: '⚠️ Change password immediately!',
-  buy_more: '🛒 Buy more? Type /menu',
+  buy_more: '🛒 Buy more? Type /start',
 
   // Profile
   profile_title: 'YOUR PROFILE',

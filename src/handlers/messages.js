@@ -7,6 +7,7 @@ const Referral = require('../services/referral');
 const Payment = require('../services/payment');
 const Events = require('../services/events');
 const { formatPrice, formatCredits, isAdmin } = require('../utils/helpers');
+const { buildDepositInstructionPayload } = require('../utils/deposit');
 const { buildAdminProductDetailKeyboard } = require('../utils/keyboard');
 const { userState } = require('./callbacks');
 const { getAdminState } = require('./admin');
@@ -149,46 +150,27 @@ async function handleCustomDeposit(bot, msg, state) {
   userState.delete(userId);
 
   const deposit = await Payment.createDeposit(userId, amount, state.method, chatId);
-  const info = deposit.instructions;
-  const currency = state.method === 'binance' ? 'USDT' : 'VND';
+  const { text, keyboard, isBinance, qrUrl } = buildDepositInstructionPayload({
+    amount,
+    method: state.method,
+    info: deposit.instructions,
+    paymentCode: deposit.paymentCode,
+    t,
+  });
 
-  let text = `💰 DEPOSIT ${formatPrice(amount, currency)}
-━━━━━━━━━━━━━━━━━━━\n\n`;
-
-  if (state.method === 'binance') {
-    text += `${t('binance_instructions')}\n`;
-    text += `${t('binance_step1')}\n`;
-    text += `${t('binance_step2')}\n`;
-    text += `${t('binance_step3')}\n`;
-    text += `${t('binance_step4', { id: info.binanceId || 'N/A' })}\n`;
-    text += `${t('binance_step5', { amount: `${amount} ${info.currency}` })}\n`;
-    text += `${t('binance_step6', { note: deposit.paymentCode })}\n`;
-    text += `${t('binance_step7')}\n`;
-  } else {
-    text += `${t('bank_info')}\n`;
-    text += `${t('bank_name', { name: info.bankInfo.bankName })}\n`;
-    text += `${t('bank_account', { account: info.bankInfo.accountNumber })}\n`;
-    text += `${t('bank_owner', { owner: info.bankInfo.accountName })}\n`;
-    text += `${t('payment_note', { code: deposit.paymentCode })}\n\n`;
-    text += t('scan_qr');
-  }
-
-  text += `\n\n${t('expires_30_min', { minutes: config.DEPOSIT_EXPIRES_MINUTES })}\n`;
-  text += t('payment_warning');
-
-  const keyboard = [
-    [{ text: t('check_payment'), callback_data: `deposit_check_${deposit.paymentCode}` }],
-    [{ text: t('cancel'), callback_data: `deposit_cancel_${deposit.paymentCode}` }]
-  ];
-
-  if (state.method === 'binance') {
-    await bot.sendPhoto(chatId, './public/bnc_qr.png', {
-      caption: text,
-      parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: keyboard }
-    });
-  } else if (state.method === 'bank' && info.qrUrl) {
-    await bot.sendPhoto(chatId, info.qrUrl, {
+  if (isBinance) {
+    await bot.sendPhoto(
+      chatId,
+      './public/bnc_qr.png',
+      {
+        caption: text,
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: keyboard }
+      },
+      { contentType: 'application/octet-stream' }
+    );
+  } else if (!isBinance && qrUrl) {
+    await bot.sendPhoto(chatId, qrUrl, {
       caption: text,
       parse_mode: 'Markdown',
       reply_markup: { inline_keyboard: keyboard }

@@ -144,7 +144,7 @@ bot_binance_pay/
 │   │       ├── order.js       # Order model
 │   │       └── transaction.js # Transaction model
 │   ├── handlers/
-│   │   ├── commands.js        # /start, /menu, /balance commands
+│   │   ├── commands.js        # /start, /balance commands
 │   │   ├── callbacks.js       # Button click handlers
 │   │   ├── messages.js        # Text message handlers
 │   │   └── admin.js           # Admin commands & UI
@@ -176,7 +176,6 @@ bot_binance_pay/
 ## 🎮 User Commands
 
 - `/start` - Start bot and show main menu
-- `/menu` - Browse products
 - `/balance` - View balance, credits, and statistics
 - `/referral` - View referral code and earnings
 - `/history` - View purchase history

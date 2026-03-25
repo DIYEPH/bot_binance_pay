@@ -14,6 +14,7 @@ module.exports = {
   shop_name: '⛄ {name}',
   welcome: '✨ Xin chào, {name}!',
   select_product: '🛒 Chọn sản phẩm để mua:',
+  select_category: '📂 Chọn danh mục để xem sản phẩm',
   no_products: '⛄ Chưa có sản phẩm nào!',
   profile_btn: '👤 Hồ sơ',
   history_btn: '📋 Lịch sử',
@@ -51,9 +52,9 @@ module.exports = {
   binance_step1: '1. Mở Binance App',
   binance_step2: '2. Vào Binance Pay',
   binance_step3: '3. Chọn "Send"',
-  binance_step4: '4. Nhập Binance ID: *{id}*',
+  binance_step4: '4. Nhập Binance ID: `{id}`',
   binance_step5: '5. Số tiền: *{amount}*',
-  binance_step6: '6. Ghi chú (*QUAN TRỌNG*): *{note}*',
+  binance_step6: '6. Ghi chú (*QUAN TRỌNG*): `{note}`',
   binance_step7: '7. Xác nhận gửi',
   bank_info: '🏦 THÔNG TIN CHUYỂN KHOẢN',
   bank_name: '• NH: {name}',
@@ -71,7 +72,7 @@ module.exports = {
   // Accounts delivery
   accounts_title: '🔑 TÀI KHOẢN:',
   change_password: '⚠️ Đổi mật khẩu ngay!',
-  buy_more: '🛒 Mua thêm? Gõ /menu',
+  buy_more: '🛒 Mua thêm? Gõ /start',
 
   // Profile
   profile_title: 'HỒ SƠ CỦA BẠN',

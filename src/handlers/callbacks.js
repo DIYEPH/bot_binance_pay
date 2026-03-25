@@ -8,8 +8,9 @@ const Wallet = require('../services/wallet');
 const Referral = require('../services/referral');
 const Payment = require('../services/payment');
 const Events = require('../services/events');
-const { formatPrice, formatCredits, getFullName, getAdminUsername, formatNumber } = require('../utils/helpers');
-const { buildShopKeyboard, buildCategoryKeyboard, buildProductKeyboard, buildDepositKeyboard, buildDepositAmountKeyboard } = require('../utils/keyboard');
+const { formatPrice, formatCredits, getFullName, formatNumber } = require('../utils/helpers');
+const { buildMainMenuPayload } = require('../utils/mainMenu');
+const { buildShopKeyboard, buildProductKeyboard, buildDepositKeyboard, buildDepositAmountKeyboard } = require('../utils/keyboard');
 const i18n = require('../locales');
 
 const userState = new Map();
@@ -77,11 +78,7 @@ async function handleBackMain(bot, query) {
   const chatId = query.message.chat.id;
   const userId = query.from.id;
   const t = i18n.getTranslator(userId);
-  const categories = await Category.getAll(false);
-  const priceRanges = await Product.getCategoryPriceRanges(true);
-  const keyboard = buildCategoryKeyboard(categories, t, getAdminUsername(), priceRanges);
-
-  const text = `🛒 SHOP\n━━━━━━━━━━━━━━━━━━━━━\n\n${categories.length > 0 ? 'Chọn danh mục để xem sản phẩm' : t('no_products')}`;
+  const { text, keyboard } = await buildMainMenuPayload(query.from, t, { includeWelcome: false });
 
   if (query.message.photo) {
     await bot.deleteMessage(chatId, query.message.message_id);
@@ -147,11 +144,17 @@ async function handleProductView(bot, query) {
 
   if (!product) return bot.answerCallbackQuery(query.id, { text: t('product_not_found') });
 
-  const text = `🎁 ${product.name}\n━━━━━━━━━━━━━━━━━━━━━\n
-${t('product_price', { price: formatPrice(product.price) })}
-${t('product_stock', { count: product.stock_count })}
-${product.description ? '📝 ' + t('description') + ': ' + product.description + '\n' : ''}
-${t('select_quantity')}`;
+  const lines = [
+    `🎁 ${product.name}`,
+    '━━━━━━━━━━━━━━━━━━━━━',
+    t('product_price', { price: formatPrice(product.price) }),
+    t('product_stock', { count: product.stock_count }),
+    product.description ? `📝 ${t('description')}: ${product.description}` : null,
+    '',
+    t('select_quantity'),
+  ].filter(Boolean);
+
+  const text = lines.join('\n');
 
   const backTarget = product.category_id ? `category_${product.category_id}` : 'back_main';
   editMsg(bot, query, text, buildProductKeyboard(product, t, backTarget));
@@ -315,11 +318,16 @@ async function handleDepositAmount(bot, query) {
 
   if (isBinance) {
     await bot.deleteMessage(chatId, query.message.message_id);
-    bot.sendPhoto(chatId, './public/bnc_qr.png', {
-      caption: text,
-      parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: keyboard }
-    });
+    bot.sendPhoto(
+      chatId,
+      './public/bnc_qr.png',
+      {
+        caption: text,
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: keyboard }
+      },
+      { contentType: 'image/png' }
+    );
   } else {
     bot.editMessageText(text, {
       chat_id: chatId,

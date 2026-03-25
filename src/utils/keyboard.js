@@ -7,9 +7,12 @@ function buildCategoryKeyboard(categories, t = null, adminUsername = null, price
     let label = `📂 ${c.name}`;
 
     if (range && range.min != null && range.max != null) {
-      const priceText = range.min === range.max
-        ? formatPrice(range.min)
-        : `${formatPrice(range.min)}-${formatPrice(range.max)}`;
+      let priceText;
+      if (range.min === range.max) {
+        priceText = `${Number(range.min)} USDT`;
+      } else {
+        priceText = `${Number(range.min)}-${Number(range.max)} USDT`;
+      }
       label += ` ┃ ${priceText}`;
     }
 
